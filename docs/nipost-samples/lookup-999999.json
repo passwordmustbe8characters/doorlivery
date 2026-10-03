@@ -1,0 +1,23 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/lookup?code=999999&level=1"
+  },
+  "status": 200,
+  "duration_ms": 144,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:36 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "546"
+  },
+  "body": {
+    "data": {
+      "postcode": "999999",
+      "valid": false,
+      "status": "invalid",
+      "verified": false
+    }
+  },
+  "probed_at": "2026-10-03T00:19:34.967Z"
+}

@@ -1,0 +1,23 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/lookup?code=100001&level=1"
+  },
+  "status": 200,
+  "duration_ms": 157,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:35 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "548"
+  },
+  "body": {
+    "data": {
+      "postcode": "100001",
+      "valid": false,
+      "status": "invalid",
+      "verified": false
+    }
+  },
+  "probed_at": "2026-10-03T00:19:34.621Z"
+}

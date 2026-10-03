@@ -1,0 +1,69 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/nearby?lat=6.623259&lng=3.498067"
+  },
+  "status": 200,
+  "duration_ms": 154,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:33 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "562"
+  },
+  "body": {
+    "data": [
+      {
+        "postcode": "LA-12-B04-EK-01",
+        "display": "LA 12 B04 EK 01",
+        "distance_m": 11.9
+      },
+      {
+        "postcode": "LA-12-B04-EK-14",
+        "display": "LA 12 B04 EK 14",
+        "distance_m": 21.5
+      },
+      {
+        "postcode": "LA-12-B04-EK-02",
+        "display": "LA 12 B04 EK 02",
+        "distance_m": 27.1
+      },
+      {
+        "postcode": "LA-12-B04-EK-04",
+        "display": "LA 12 B04 EK 04",
+        "distance_m": 27.5
+      },
+      {
+        "postcode": "LA-12-B04-EK-03",
+        "display": "LA 12 B04 EK 03",
+        "distance_m": 33.6
+      },
+      {
+        "postcode": "LA-12-B04-EK-05",
+        "display": "LA 12 B04 EK 05",
+        "distance_m": 34.7
+      },
+      {
+        "postcode": "LA-12-B04-EK-13",
+        "display": "LA 12 B04 EK 13",
+        "distance_m": 37.5
+      },
+      {
+        "postcode": "LA-12-B04-EK-15",
+        "display": "LA 12 B04 EK 15",
+        "distance_m": 38.1
+      },
+      {
+        "postcode": "LA-12-B04-EK-16",
+        "display": "LA 12 B04 EK 16",
+        "distance_m": 46.2
+      },
+      {
+        "postcode": "LA-12-B04-EK-06",
+        "display": "LA 12 B04 EK 06",
+        "distance_m": 48.6
+      }
+    ]
+  },
+  "probed_at": "2026-10-03T00:19:32.058Z"
+}

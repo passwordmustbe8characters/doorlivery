@@ -1,0 +1,69 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/nearby?lat=6.629776&lng=3.500453"
+  },
+  "status": 200,
+  "duration_ms": 162,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:33 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "559"
+  },
+  "body": {
+    "data": [
+      {
+        "postcode": "LA-12-B04-GW-23",
+        "display": "LA 12 B04 GW 23",
+        "distance_m": 6
+      },
+      {
+        "postcode": "LA-12-B04-JK-37",
+        "display": "LA 12 B04 JK 37",
+        "distance_m": 15.6
+      },
+      {
+        "postcode": "LA-12-B04-GW-22",
+        "display": "LA 12 B04 GW 22",
+        "distance_m": 17.1
+      },
+      {
+        "postcode": "LA-12-B04-JK-36",
+        "display": "LA 12 B04 JK 36",
+        "distance_m": 19.3
+      },
+      {
+        "postcode": "LA-12-B04-GU-07",
+        "display": "LA 12 B04 GU 07",
+        "distance_m": 22.1
+      },
+      {
+        "postcode": "LA-12-B04-GW-21",
+        "display": "LA 12 B04 GW 21",
+        "distance_m": 22.1
+      },
+      {
+        "postcode": "LA-12-B04-JK-35",
+        "display": "LA 12 B04 JK 35",
+        "distance_m": 27.4
+      },
+      {
+        "postcode": "LA-12-B04-JK-34",
+        "display": "LA 12 B04 JK 34",
+        "distance_m": 32.2
+      },
+      {
+        "postcode": "LA-12-B04-GU-08",
+        "display": "LA 12 B04 GU 08",
+        "distance_m": 35
+      },
+      {
+        "postcode": "LA-12-B04-GU-09",
+        "display": "LA 12 B04 GU 09",
+        "distance_m": 36.3
+      }
+    ]
+  },
+  "probed_at": "2026-10-03T00:19:32.545Z"
+}

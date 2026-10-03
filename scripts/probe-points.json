@@ -1,0 +1,18 @@
+[
+  { "label": "lagos-ikeja", "lat": 6.6018, "lng": 3.3515, "area_type": "urban" },
+  { "label": "lagos-victoria-island", "lat": 6.4281, "lng": 3.4219, "area_type": "urban" },
+  { "label": "lagos-yaba", "lat": 6.5095, "lng": 3.3711, "area_type": "urban" },
+  { "label": "abuja-wuse", "lat": 9.0765, "lng": 7.4986, "area_type": "urban" },
+  { "label": "atlantic-not-found", "lat": 6.2, "lng": 3.3, "area_type": "sea" },
+  { "label": "Access Bank, Ikorodu", "lat": 6.623259, "lng": 3.498067, "area_type": "bank" },
+  { "label": "Centcas School", "lat": 6.619967, "lng": 3.495794, "area_type": "school" },
+  { "label": "Wisdom and Power SDA Church", "lat": 6.627799, "lng": 3.501168, "area_type": "church" },
+  { "label": "Saint Pesak School", "lat": 6.629776, "lng": 3.500453, "area_type": "school" },
+  { "label": "Dessykids Vogue clothing store", "lat": 6.629489, "lng": 3.494157, "area_type": "shop" },
+  { "label": "Mimi's Place and Event", "lat": 6.629485, "lng": 3.490654, "area_type": "event_venue" },
+  { "label": "Tawakalitu Mosque", "lat": 6.630209, "lng": 3.486978, "area_type": "mosque" },
+  { "label": "Timmy Fresh Haircut Salon", "lat": 6.630629, "lng": 3.484226, "area_type": "salon" },
+  { "label": "Mushin Ladipo Paper Market", "lat": 6.534178, "lng": 3.350313, "area_type": "market" },
+  { "label": "Avon Healthcare Hospital, Mushin", "lat": 6.535420, "lng": 3.350469, "area_type": "hospital" },
+  { "label": "Silverson Construction Management", "lat": 6.521679, "lng": 3.332460, "area_type": "office" }
+]

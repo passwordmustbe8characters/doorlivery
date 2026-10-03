@@ -1,0 +1,18 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/nearby?lat=6.2&lng=3.3"
+  },
+  "status": 200,
+  "duration_ms": 164,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:33 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "563"
+  },
+  "body": {
+    "data": []
+  },
+  "probed_at": "2026-10-03T00:19:31.893Z"
+}

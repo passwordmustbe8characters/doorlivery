@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/reverse?lat=6.627799&lng=3.501168&max_distance_m=50"
+  },
+  "status": 200,
+  "duration_ms": 151,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:29 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "584"
+  },
+  "body": {
+    "data": {
+      "found": true,
+      "coordinate": [
+        3.501168,
+        6.627799
+      ],
+      "unit": {
+        "postcode": "LA-12-B04-GX-18",
+        "display": "LA 12 B04 GX 18",
+        "distance_m": 8.5,
+        "confidence": "high"
+      },
+      "area": "LA-12-B04-GX",
+      "district": "LA-12-B04",
+      "state": "LA",
+      "depth": "unit",
+      "radius_m": 50
+    }
+  },
+  "probed_at": "2026-10-03T00:19:28.441Z"
+}

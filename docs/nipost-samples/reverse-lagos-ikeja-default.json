@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/reverse?lat=6.6018&lng=3.3515"
+  },
+  "status": 200,
+  "duration_ms": 745,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:26 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "599"
+  },
+  "body": {
+    "data": {
+      "found": true,
+      "coordinate": [
+        3.3515,
+        6.6018
+      ],
+      "unit": {
+        "postcode": "LA-11-A12-GN-01",
+        "display": "LA 11 A12 GN 01",
+        "distance_m": 9.2,
+        "confidence": "high"
+      },
+      "area": "LA-11-A12-GN",
+      "district": "LA-11-A12",
+      "state": "LA",
+      "depth": "unit",
+      "radius_m": 25
+    }
+  },
+  "probed_at": "2026-10-03T00:19:25.149Z"
+}

@@ -1,0 +1,35 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/reverse?lat=6.521679&lng=3.33246&max_distance_m=50"
+  },
+  "status": 200,
+  "duration_ms": 156,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:32 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "568"
+  },
+  "body": {
+    "data": {
+      "found": true,
+      "coordinate": [
+        3.33246,
+        6.521679
+      ],
+      "unit": {
+        "postcode": "LA-18-A07-GR-45",
+        "display": "LA 18 A07 GR 45",
+        "distance_m": 7.8,
+        "confidence": "high"
+      },
+      "area": "LA-18-A07-GR",
+      "district": "LA-18-A07",
+      "state": "LA",
+      "depth": "unit",
+      "radius_m": 50
+    }
+  },
+  "probed_at": "2026-10-03T00:19:31.116Z"
+}

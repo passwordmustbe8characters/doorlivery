@@ -1,0 +1,69 @@
+{
+  "request": {
+    "method": "GET",
+    "path": "/v1/search/nearby?lat=6.619967&lng=3.495794"
+  },
+  "status": 200,
+  "duration_ms": 147,
+  "headers": {
+    "content-type": "application/json",
+    "date": "Sat, 03 Oct 2026 00:19:33 GMT",
+    "x-ratelimit-limit": "600",
+    "x-ratelimit-remaining": "561"
+  },
+  "body": {
+    "data": [
+      {
+        "postcode": "LA-12-A85-BV-05",
+        "display": "LA 12 A85 BV 05",
+        "distance_m": 3.4
+      },
+      {
+        "postcode": "LA-12-A85-BV-04",
+        "display": "LA 12 A85 BV 04",
+        "distance_m": 17.3
+      },
+      {
+        "postcode": "LA-12-A85-BV-06",
+        "display": "LA 12 A85 BV 06",
+        "distance_m": 22.4
+      },
+      {
+        "postcode": "LA-12-A85-BV-17",
+        "display": "LA 12 A85 BV 17",
+        "distance_m": 26.4
+      },
+      {
+        "postcode": "LA-12-A85-BV-03",
+        "display": "LA 12 A85 BV 03",
+        "distance_m": 27.3
+      },
+      {
+        "postcode": "LA-12-A85-BV-07",
+        "display": "LA 12 A85 BV 07",
+        "distance_m": 29.2
+      },
+      {
+        "postcode": "LA-12-A85-BV-01",
+        "display": "LA 12 A85 BV 01",
+        "distance_m": 29.7
+      },
+      {
+        "postcode": "LA-12-A85-DU-30",
+        "display": "LA 12 A85 DU 30",
+        "distance_m": 32.1
+      },
+      {
+        "postcode": "LA-12-A85-BU-09",
+        "display": "LA 12 A85 BU 09",
+        "distance_m": 33
+      },
+      {
+        "postcode": "LA-12-A85-DU-32",
+        "display": "LA 12 A85 DU 32",
+        "distance_m": 34.2
+      }
+    ]
+  },
+  "probed_at": "2026-10-03T00:19:32.232Z"
+}
