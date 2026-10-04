@@ -26,6 +26,8 @@ const EnvSchema = z.object({
   // Vendor sessions: logged out after this long without activity, and always after the absolute limit.
   SESSION_IDLE_HOURS: z.coerce.number().positive().default(72),
   SESSION_ABSOLUTE_DAYS: z.coerce.number().positive().default(30),
+  // Keys the delivery-code HMAC and encryption. 32+ random bytes, base64url.
+  DELIVERY_CODE_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
   // Extra origins allowed to make state-changing /api calls (comma-separated). PUBLIC_BASE_URL is always allowed.
   EXTRA_ALLOWED_ORIGINS: z.string().default(''),
 });

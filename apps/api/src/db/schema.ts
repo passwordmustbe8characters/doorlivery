@@ -67,7 +67,9 @@ export const deliveries = pgTable(
     customer_phone: varchar('customer_phone', { length: 32 }),
     item_note: text('item_note'),
     status: varchar('status', { length: 32 }).notNull().default('created'),
+    // HMAC of the 4-digit code (for checking) and an AES-GCM copy (so the customer page can show it again).
     code_hash: text('code_hash'),
+    code_encrypted: text('code_encrypted'),
     code_attempts: integer('code_attempts').notNull().default(0),
     customer_token_hash: varchar('customer_token_hash', { length: 128 }).unique(),
     rider_token_hash: varchar('rider_token_hash', { length: 128 }).unique(),

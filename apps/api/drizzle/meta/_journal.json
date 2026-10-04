@@ -15,6 +15,13 @@
       "when": 1791139340510,
       "tag": "0001_narrow_arachne",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791142104558,
+      "tag": "0002_sweet_rogue",
+      "breakpoints": true
     }
   ]
 }

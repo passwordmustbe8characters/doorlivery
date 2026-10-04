@@ -27,6 +27,22 @@ export const en = {
     errorGeneric: 'Something went wrong. Please try again.',
     linkInvalidTitle: 'Link not valid',
     linkInvalid: 'This link is not valid or has expired. Please ask the seller for a new one.',
+    postcodeNotOffered: 'Please choose a postcode from the list, or move the pin and try again.',
+    confirming: 'Saving…',
+    // Code screen (after confirming)
+    codeTitle: 'Your delivery code',
+    codeHeadline: 'Location confirmed',
+    codeInstruction: 'Give this code to the rider only when you receive your package.',
+    codeUnavailable: 'Your location is saved. Please contact the seller for your delivery code.',
+    deliverTo: 'Delivering to',
+    statusLine: {
+      ready: 'The seller will send a rider soon.',
+      assigned: 'A rider has been assigned.',
+      picked_up: 'Your package is on the way.',
+      arrived: 'The rider has arrived.',
+    } as Record<string, string>,
+    deliveredTitle: 'Delivered',
+    delivered: 'Your package has been delivered. Thank you!',
   },
 
   // WhatsApp message templates (SPEC 9).

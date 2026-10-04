@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { customerPageCsp, renderCustomerPage, tileOrigin } from './customer-page.js';
+import { customerPageCsp, renderCodePage, renderCustomerPage, tileOrigin } from './customer-page.js';
 
 const render = (businessName = 'Ada Fabrics') =>
   renderCustomerPage({
@@ -27,6 +27,27 @@ describe('customer page', () => {
     const tags = render().match(/<script\b[^>]*>/g) ?? [];
     assert.ok(tags.length >= 2);
     for (const tag of tags) assert.match(tag, /nonce="n0nce"/);
+  });
+
+  it('code screen shows the code, instruction, and escaped landmark; no scripts', () => {
+    const html = renderCodePage({
+      nonce: 'n0nce',
+      businessName: 'Ada Fabrics',
+      status: 'ready',
+      code: '0427',
+      postcode: 'LA-12-B04-EK-01',
+      landmark: '<b>Blue gate</b>',
+    });
+    assert.ok(html.includes('>0427<'));
+    assert.ok(html.includes('Give this code to the rider only when you receive your package.'));
+    assert.ok(html.includes('LA 12 B04 EK 01'));
+    assert.ok(html.includes('&lt;b&gt;Blue gate&lt;/b&gt;'));
+    assert.ok(!/<script/i.test(html));
+  });
+
+  it('code screen without a decryptable code says so instead of crashing', () => {
+    const html = renderCodePage({ nonce: 'n', businessName: 'X', status: 'ready', code: null, postcode: null, landmark: null });
+    assert.ok(html.includes('contact the seller'));
   });
 
   it('CSP allows the tile host and keeps connect-src to self', () => {

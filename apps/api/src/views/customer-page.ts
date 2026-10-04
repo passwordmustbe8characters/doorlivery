@@ -237,14 +237,22 @@ export function renderCustomerPage({ nonce, businessName, tileUrl, tileAttributi
     if (!r) return;
     var postcode = r.needs_confirmation ? state.chosen : r.postcode;
     $('confirm').disabled = true; setError('');
+    $('confirm').textContent = t.confirming;
     fetch(base + '/confirm', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postcode: postcode || null, lat: state.lat, lng: state.lng, landmark_note: $('landmark').value.trim() || null })
+      body: JSON.stringify({ postcode: postcode || null, lat: state.lat, lng: state.lng, accuracy_m: state.accuracy, landmark_note: $('landmark').value.trim() || null })
     })
-      .then(function (res) { if (!res.ok) throw new Error(); return res.json(); })
-      .then(function () { /* Code screen arrives in slice 4. */ })
-      .catch(function () { setError(t.errorGeneric); updateConfirm(); });
+      .then(function (res) { return res.json().then(function (body) { return { ok: res.ok, body: body }; }); })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.body && r.body.message);
+        location.reload(); // the server now renders the code screen
+      })
+      .catch(function (err) {
+        setError((err && err.message) || t.errorGeneric);
+        $('confirm').textContent = t.confirm;
+        updateConfirm();
+      });
   });
 })();
 </script>
@@ -252,11 +260,61 @@ export function renderCustomerPage({ nonce, businessName, tileUrl, tileAttributi
 </html>`;
 }
 
-export function renderLinkInvalidPage(nonce: string): string {
-  const t = en.customer;
+// Small static pages (no map, no scripts).
+function simplePage(nonce: string, title: string, body: string): string {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex"><title>${escapeHtml(t.linkInvalidTitle)}</title>
-<style nonce="${nonce}">body{margin:0;font:16px/1.5 system-ui,sans-serif;color:#14181f;background:#f6f7f9}main{max-width:480px;margin:0 auto;padding:32px 16px}h1{font-size:1.3rem}</style>
-</head><body><main><h1>${escapeHtml(t.linkInvalidTitle)}</h1><p>${escapeHtml(t.linkInvalid)}</p></main></body></html>`;
+<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer"><title>${escapeHtml(title)}</title>
+<style nonce="${nonce}">
+  body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#14181f;background:#f6f7f9}
+  main{max-width:480px;margin:0 auto;padding:32px 16px}
+  h1{font-size:1.3rem;margin:0 0 8px}
+  .card{background:#fff;border:1px solid #d9dee5;border-radius:12px;padding:16px;margin:16px 0}
+  .muted{color:#5b6472}
+  .code{font-size:3rem;font-weight:800;letter-spacing:.35em;text-align:center;margin:8px 0;font-variant-numeric:tabular-nums}
+  .instruction{font-weight:600;text-align:center}
+</style>
+</head><body><main>${body}</main></body></html>`;
+}
+
+export function renderLinkInvalidPage(nonce: string): string {
+  const t = en.customer;
+  return simplePage(nonce, t.linkInvalidTitle, `<h1>${escapeHtml(t.linkInvalidTitle)}</h1><p>${escapeHtml(t.linkInvalid)}</p>`);
+}
+
+interface CodePageInput {
+  nonce: string;
+  businessName: string;
+  status: string;
+  /** Null if the code can't be decrypted (e.g. the secret was rotated). */
+  code: string | null;
+  postcode: string | null;
+  landmark: string | null;
+}
+
+export function renderCodePage({ nonce, businessName, status, code, postcode, landmark }: CodePageInput): string {
+  const t = en.customer;
+  const where = [postcode ? postcode.replace(/-/g, ' ') : null, landmark].filter(Boolean).map((s) => escapeHtml(s!)).join('<br>');
+  const statusLine = t.statusLine[status];
+  return simplePage(
+    nonce,
+    t.codeTitle,
+    `<h1>${escapeHtml(t.codeHeadline)}</h1>
+  <p class="muted">${escapeHtml(t.headline(businessName))}${statusLine ? `. ${escapeHtml(statusLine)}` : ''}</p>
+  <div class="card">
+    ${
+      code
+        ? `<div class="muted">${escapeHtml(t.codeTitle)}</div>
+    <div class="code" aria-label="${escapeHtml(code.split('').join(' '))}">${escapeHtml(code)}</div>
+    <p class="instruction">${escapeHtml(t.codeInstruction)}</p>`
+        : `<p>${escapeHtml(t.codeUnavailable)}</p>`
+    }
+  </div>
+  ${where ? `<div class="card"><div class="muted">${escapeHtml(t.deliverTo)}</div><div>${where}</div></div>` : ''}`,
+  );
+}
+
+export function renderDeliveredPage(nonce: string): string {
+  const t = en.customer;
+  return simplePage(nonce, t.deliveredTitle, `<h1>${escapeHtml(t.deliveredTitle)}</h1><p>${escapeHtml(t.delivered)}</p>`);
 }

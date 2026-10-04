@@ -60,6 +60,45 @@ export async function resolvePin(client: NipostClient, point: LatLng, opts: Reso
   };
 }
 
+export type ChoiceCheck =
+  | { ok: true; postcode: string | null; confidence: Confidence | null }
+  | { ok: false; reason: 'not_offered' };
+
+/**
+ * Re-checks the customer's chosen postcode against NIPOST for the same point, so the dataset only gets
+ * postcodes NIPOST actually offered there. If NIPOST is down, the pin is still accepted with no postcode
+ * (pending), so a delivery is never blocked.
+ */
+export async function checkChosenPostcode(
+  client: NipostClient | null,
+  point: LatLng,
+  chosen: string | null,
+  opts: Pick<ResolveOptions, 'reverseRadiusM'>,
+): Promise<ChoiceCheck> {
+  if (!chosen || !client) return { ok: true, postcode: null, confidence: null };
+
+  let reverse;
+  try {
+    reverse = await client.reverse(point, opts.reverseRadiusM);
+  } catch (err) {
+    if (err instanceof NipostError && (err.kind === 'auth' || err.kind === 'no_credits')) throw err;
+    return { ok: true, postcode: null, confidence: null };
+  }
+
+  const unit = reverse.found ? reverse.unit : undefined;
+  if (unit?.postcode === chosen) return { ok: true, postcode: chosen, confidence: unit.confidence };
+
+  let nearby: NipostNearbyItem[];
+  try {
+    nearby = await client.nearby(point);
+  } catch {
+    return { ok: true, postcode: null, confidence: null };
+  }
+  // Customer overrode NIPOST's best match: keep it, but mark it low until a rider confirms the spot.
+  if (nearby.some((n) => n.postcode === chosen)) return { ok: true, postcode: chosen, confidence: 'low' };
+  return { ok: false, reason: 'not_offered' };
+}
+
 async function nearbyOrEmpty(client: NipostClient, point: LatLng): Promise<NipostNearbyItem[]> {
   try {
     return await client.nearby(point);

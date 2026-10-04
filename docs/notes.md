@@ -55,6 +55,21 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - Latency: ~130–160 ms per call. The first call took ~770 ms (cold connection).
 - CORS is `*`, and the API allows an `X-Widget-Origin` header. We still call it server-side only.
 
+## Slice 4 build (2026-10-04)
+- **`POST /c/:token/confirm`** takes `lat`, `lng`, `accuracy_m?`, `postcode?` (must match the NIPOST format) and `landmark_note?` (up to 300 chars). It moves `awaiting_customer`/`created` to **`ready`** in one transaction, using the same token and an open-status guard, so a double tap or a re-sent link can't confirm twice.
+- **The chosen postcode is checked again on the server.** NIPOST is asked again for the same point:
+  - NIPOST's own unit → stored with its confidence.
+  - A pick from the nearby list → stored as `low`, because the customer overrode NIPOST; a rider confirmation can raise it later.
+  - Anything else → 400, "Please choose a postcode from the list…".
+  - NIPOST down, or no postcode chosen → the pin is saved with postcode `null` ("pending"). The rider message then says "see map".
+- **`location_points`** gets a `customer_pin` row only when there is a postcode. Our own coordinates plus the postcode string, nothing else from NIPOST (SPEC 12).
+- **Delivery code:** 4 random digits (`crypto.randomInt`).
+  - `code_hash`: HMAC-SHA256 over `delivery_id:code`, keyed from `DELIVERY_CODE_SECRET`, because a plain hash of 4 digits can be brute-forced instantly.
+  - `code_encrypted` (new column, migration `0002`): an AES-256-GCM copy, bound to the delivery id, so the **customer page can show the code again** when the link is reopened. Neither the vendor nor the rider can see it.
+  - Both keys are derived from `DELIVERY_CODE_SECRET` (HKDF). **Changing the secret invalidates every issued code.**
+- **Customer link after confirm:** shows the code screen (code, instruction, postcode, landmark, status line; no scripts). Once delivered, it shows "Delivered". After a cancel, it shows "Link not valid".
+- **Not in this slice:** checking the code and the 5-attempt lockout (slice 5). The customer can't change their pin after confirming; if they need to, the vendor has to cancel and create a new delivery.
+
 ## Hosting change (2026-10-04, replaces SPEC 3 "API on Render, vendor app on Vercel")
 - **One origin, one deploy.** Express serves the built vendor app (`apps/web/dist`) as well as `/api`, `/c` and `/r`, all on Render. Vercel is no longer used.
 - Why: the session cookie stays first-party (`SameSite=Lax` just works), there's no CORS, and there's one thing to deploy.
