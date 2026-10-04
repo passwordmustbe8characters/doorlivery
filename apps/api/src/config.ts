@@ -14,6 +14,15 @@ const EnvSchema = z.object({
   DATABASE_URL: z.preprocess(blankToUndefined, z.string().url().optional()),
   NIPOST_API_BASE_URL: z.string().url().default('https://api.postcode.gov.ng'),
   NIPOST_API_KEY: z.preprocess(blankToUndefined, z.string().optional()),
+  NIPOST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+  // 50 m (not the API's 25 m default) so a pin slightly off a building still gets a unit, not area-only.
+  NIPOST_REVERSE_RADIUS_M: z.coerce.number().int().min(1).max(250).default(50),
+  // A unit farther than this from the pin needs the customer to confirm or pick from nearby.
+  NIPOST_FAR_DISTANCE_M: z.coerce.number().positive().default(30),
+  PUBLIC_BASE_URL: z.string().url().default('http://localhost:4000'),
+  // Public OSM tiles have a usage policy; switch provider before launch (SPEC 3).
+  MAP_TILE_URL: z.string().default('https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+  MAP_TILE_ATTRIBUTION: z.string().default('&copy; OpenStreetMap contributors'),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

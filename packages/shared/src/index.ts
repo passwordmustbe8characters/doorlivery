@@ -31,7 +31,8 @@ export const ERROR_CODES = [
 ] as const;
 export type ErrorCode = (typeof ERROR_CODES)[number];
 
-export * from './nipost.js';
+// .ts extension: drizzle-kit loads the schema (and this file) as CommonJS and can't map .js to .ts.
+export * from './nipost.ts';
 
 export interface ApiError {
   error: true;

@@ -1,0 +1,28 @@
+// All user-facing text lives here so other languages can be added later (SPEC 11).
+export const en = {
+  customer: {
+    title: 'Confirm your delivery location',
+    headline: (vendor: string) => `${vendor} is sending your order`,
+    intro: 'Show us exactly where to deliver. Use your location, or drag the pin onto your building.',
+    useMyLocation: 'Use my location',
+    locating: 'Finding you…',
+    locationDenied: 'We could not get your location. Drag the pin onto your building instead.',
+    checking: 'Checking the postcode…',
+    postcodeLabel: 'Postcode',
+    confident: "We're confident",
+    pleaseCheck: 'Please check the pin',
+    chooseNearby: 'Is one of these nearer to you?',
+    noneOfThese: 'None of these',
+    leaveBlank: 'Leave postcode blank',
+    mapLabel: 'Map. Drag the pin onto your building.',
+    areaOnly: "We couldn't find a postcode right at this spot. Move the pin onto your building, or choose one nearby.",
+    notFound: "We couldn't find a postcode near this spot. Move the pin onto your building. You can still confirm and add a landmark.",
+    unavailable: "We can't check the postcode right now. You can still confirm your pin and the rider will find you.",
+    landmarkLabel: 'Landmark or directions (optional)',
+    landmarkPlaceholder: 'e.g. Blue gate opposite the mosque',
+    confirm: 'Confirm location',
+    errorGeneric: 'Something went wrong. Please try again.',
+    linkInvalidTitle: 'Link not valid',
+    linkInvalid: 'This link is not valid or has expired. Please ask the seller for a new one.',
+  },
+} as const;

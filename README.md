@@ -21,5 +21,7 @@ npm run dev:api        # API on http://localhost:4000 (GET /health)
 npm run probe:nipost   # needs NIPOST_API_KEY in .env
 npm run db:generate    # create a migration after changing apps/api/src/db/schema.ts
 npm run db:migrate     # apply migrations (needs DATABASE_URL in .env)
+npm run db:seed        # dev only: create a test delivery and print its customer link
+npm test
 npm run typecheck
 ```

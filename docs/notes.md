@@ -3,7 +3,9 @@
 Findings, decisions and open questions (SPEC sections 0 and 12).
 
 ## Decisions
-- 2026-10-03: Postgres is deferred until slice 2. `db:migrate` has not been run yet.
+- 2026-10-04: Postgres is Neon. The first migration was applied in slice 2.
+- 2026-10-04: Shared package imports use `.ts` extensions (`allowImportingTsExtensions`), because drizzle-kit loads the schema as CommonJS.
+- 2026-10-04: Tests use Node's built-in runner via `tsx --test` (no new dependency).
 - 2026-10-03: ORM is **Drizzle** (drizzle-orm + drizzle-kit). Migrations are SQL files in `apps/api/drizzle/`.
 - 2026-10-03: Package manager is **npm workspaces**.
 - 2026-10-03: No `dotenv` dependency. Node's built-in `process.loadEnvFile` reads the repo-root `.env`.
@@ -52,6 +54,17 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - Headers: `x-ratelimit-limit: 600`, `x-ratelimit-remaining`. No reset header and no credit or cost headers. The window length is **unknown**: the counter had reset within about 8 minutes.
 - Latency: ~130–160 ms per call. The first call took ~770 ms (cold connection).
 - CORS is `*`, and the API allows an `X-Widget-Origin` header. We still call it server-side only.
+
+## Slice 2 build (2026-10-04)
+- Postgres is on Neon (Postgres 18). The first migration was regenerated with `varchar(32)` postcodes and applied. 4 tables plus `__drizzle_migrations`.
+- **Reverse radius: 50 m** (`NIPOST_REVERSE_RADIUS_M`). At 25 m, Yaba returned area-only; at 50 m it returns a medium unit, which the customer then confirms.
+- **"Far" threshold: 30 m** (`NIPOST_FAR_DISTANCE_M`). All 14 high-confidence units seen so far were within 21 m.
+- `needs_confirmation` is true unless the result is `high` **and** within 30 m. In that case the nearby list is fetched, and the found unit is pre-selected in the picker.
+- NIPOST timeout or 5xx → one retry → `outcome: "unavailable"`, and the customer can still confirm the pin. A 401/402 is treated as our fault: it is logged (without details) and returned as `UPSTREAM_ERROR`.
+- The client rejects an answer whose echoed `coordinate` isn't our point (±0.0001°), which catches a lat/lng swap on either side. Resolve also rejects points outside Nigeria's bounding box, which catches a swap from the browser.
+- The customer page loads Leaflet 1.9.4 from unpkg with SRI hashes. Each request gets its own nonce and a strict CSP (`connect-src 'self'`, `default-src 'none'`).
+- Test data: `npm run db:seed` creates a test vendor (no login possible) and prints a customer link.
+- `/c/:token/confirm` is **not built yet** (slice 4). Pressing Confirm on the page currently shows "Something went wrong".
 
 ## Slice 2 plan (agreed 2026-10-03)
 - **Postcode columns become `varchar(32)`** (`deliveries.dropoff_postcode`, `location_points.postcode`). Change `schema.ts` and regenerate the first migration when we start slice 2. Nothing runs against a database before then.

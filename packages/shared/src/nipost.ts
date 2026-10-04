@@ -1,6 +1,6 @@
 // NIPOST postcode API (L1) response types, built from real responses in docs/nipost-samples/ (probed 2026-10-03).
 // Every response body is wrapped as { data: ... }.
-import type { Confidence } from './index.js';
+import type { Confidence } from './index.ts';
 
 export interface NipostEnvelope<T> {
   data: T;

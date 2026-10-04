@@ -1,5 +1,5 @@
 {
-  "id": "26f2ab8c-c0b1-4a0c-a025-4c770ccf8b15",
+  "id": "0c44965a-26d4-4697-9520-b73015415d92",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -99,7 +99,7 @@
         },
         "dropoff_postcode": {
           "name": "dropoff_postcode",
-          "type": "varchar(16)",
+          "type": "varchar(32)",
           "primaryKey": false,
           "notNull": false
         },
@@ -347,7 +347,7 @@
         },
         "postcode": {
           "name": "postcode",
-          "type": "varchar(16)",
+          "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
         },

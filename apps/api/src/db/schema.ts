@@ -56,7 +56,7 @@ export const deliveries = pgTable(
     customer_token_hash: varchar('customer_token_hash', { length: 128 }).unique(),
     rider_token_hash: varchar('rider_token_hash', { length: 128 }).unique(),
     rider_phone: varchar('rider_phone', { length: 32 }),
-    dropoff_postcode: varchar('dropoff_postcode', { length: 16 }),
+    dropoff_postcode: varchar('dropoff_postcode', { length: 32 }),
     dropoff_lat: doublePrecision('dropoff_lat'),
     dropoff_lng: doublePrecision('dropoff_lng'),
     dropoff_confidence: varchar('dropoff_confidence', { length: 16 }),
@@ -97,7 +97,7 @@ export const locationPoints = pgTable(
   'location_points',
   {
     ...baseColumns,
-    postcode: varchar('postcode', { length: 16 }).notNull(),
+    postcode: varchar('postcode', { length: 32 }).notNull(),
     latitude: doublePrecision('latitude').notNull(),
     longitude: doublePrecision('longitude').notNull(),
     accuracy_m: doublePrecision('accuracy_m'),
