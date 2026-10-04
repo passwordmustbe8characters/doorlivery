@@ -4,7 +4,7 @@ Delivery location MVP for Nigerian social-commerce vendors: buyers confirm a map
 
 ## Layout
 - `apps/api`: Express + Drizzle (Postgres)
-- `apps/web`: vendor app (React + Vite, slice 3)
+- `apps/web`: vendor app (React + Vite), served by the API in production
 - `packages/shared`: shared types
 - `scripts/probe-nipost.ts`: saves raw NIPOST responses to `docs/nipost-samples/`
 - `docs/notes.md`: findings and decisions
@@ -18,6 +18,10 @@ Copy-Item .env.example .env   # only if .env does not exist yet; then fill in va
 ## Commands
 ```powershell
 npm run dev:api        # API on http://localhost:4000 (GET /health)
+npm run dev:web        # vendor app on http://localhost:5173 (proxies /api to :4000)
+npm run vendor:create  # invite a vendor (hidden password prompt); add -- --reset-password to change one
+npm run build          # build the vendor app into apps/web/dist
+npm start              # production: API + built vendor app on one origin
 npm run probe:nipost   # needs NIPOST_API_KEY in .env
 npm run db:generate    # create a migration after changing apps/api/src/db/schema.ts
 npm run db:migrate     # apply migrations (needs DATABASE_URL in .env)

@@ -39,6 +39,22 @@ export const vendors = pgTable('vendors', {
   is_active: boolean('is_active').notNull().default(true),
 });
 
+// Hand-written vendor sessions. Only the SHA-256 of the cookie token is stored.
+export const sessions = pgTable(
+  'sessions',
+  {
+    ...baseColumns,
+    vendor_id: uuid('vendor_id')
+      .notNull()
+      .references(() => vendors.id, { onDelete: 'cascade' }),
+    token_hash: varchar('token_hash', { length: 128 }).notNull().unique(),
+    last_seen_at: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+    // Absolute expiry, fixed at login. Idle expiry is checked against last_seen_at.
+    expires_at: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('sessions_vendor_idx').on(t.vendor_id)],
+);
+
 export const deliveries = pgTable(
   'deliveries',
   {

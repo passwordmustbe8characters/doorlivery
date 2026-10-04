@@ -55,6 +55,33 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - Latency: ~130–160 ms per call. The first call took ~770 ms (cold connection).
 - CORS is `*`, and the API allows an `X-Widget-Origin` header. We still call it server-side only.
 
+## Hosting change (2026-10-04, replaces SPEC 3 "API on Render, vendor app on Vercel")
+- **One origin, one deploy.** Express serves the built vendor app (`apps/web/dist`) as well as `/api`, `/c` and `/r`, all on Render. Vercel is no longer used.
+- Why: the session cookie stays first-party (`SameSite=Lax` just works), there's no CORS, and there's one thing to deploy.
+- Local dev: Vite on `:5173` proxies `/api` to Express on `:4000`. `http://localhost:5173` is an allowed origin in development only.
+- Render build: `npm ci && npm run build`. Start command: `npm start`.
+
+## Slice 3 build (2026-10-04)
+- **Auth:** `@node-rs/argon2` (argon2id, m=19 MiB, t=2, p=1). It installs from prebuilt binaries on Windows; Render (linux-x64) has a prebuilt binary too, still to be confirmed at deploy time. Fall back to `bcryptjs` only if it fails there.
+- **Sessions** (`sessions` table, migration `0001`):
+  - Random 256-bit token in cookie `dl_session`: `HttpOnly; Secure; SameSite=Lax; Path=/`. Only its SHA-256 is stored.
+  - Idle expiry 72 h (`SESSION_IDLE_HOURS`), absolute 30 days (`SESSION_ABSOLUTE_DAYS`). `last_seen_at` is written at most every 5 min.
+  - Logout deletes the row. A password reset via the script deletes all of that vendor's sessions.
+- **Origin check:** every non-GET `/api` request needs an `Origin` (or `Referer`) in the allowed set: `PUBLIC_BASE_URL`, plus `:5173` in dev, plus `EXTRA_ALLOWED_ORIGINS`.
+- **Login rate limits** (in memory, per API instance):
+  - 20 attempts per IP and 5 failures per email, each per 15 min.
+  - Wrong email, wrong password, an inactive vendor and a malformed email all get the same 401 message. An argon2 verify always runs, so the timing matches too (measured 201 vs 192 ms median).
+  - Known trade-off: anyone can lock a vendor out for 15 min by failing 5 times. This is acceptable for now; revisit in slice 6. If we run more than one instance, move the counters to Postgres.
+- **Invite-only:** no signup route. `npm run vendor:create` uses a hidden password prompt (min 10 chars) and refuses non-interactive input. `-- --reset-password` changes a password and logs that vendor out everywhere.
+- **API additions beyond SPEC 6:**
+  - `GET /api/auth/me`, which the app uses to check the session.
+  - `POST /api/deliveries/:id/customer-link`. Tokens are stored hashed, so a link can't be shown again later. Each "Send to customer" makes a fresh link and the old one stops working.
+- **Delivery code:** not generated at create time, despite SPEC 5 step 1. It's stored hashed, so it must be generated when it's shown, at `/c/:token/confirm` in slice 4.
+- **Assign:** only from `ready` (or `assigned`, to re-send). The rider message uses `dropoff_postcode`, or "see map" if the customer confirmed without one.
+- **Cancel:** clears both token hashes, so the customer and rider links die immediately.
+- **Vendor app:** React 19 + Vite 8, with no router library (a ~40-line history router) and no `@vitejs/plugin-react` (Vite compiles the JSX itself; the only loss is component hot reload). 73 KB gzipped. Served with a strict CSP (`default-src 'self'`, no inline scripts).
+- **Not done yet:** "pick a rider" from recent riders (only typing a number works). Safari won't keep `Secure` cookies on `http://localhost`, so test locally in Chrome, Edge or Firefox.
+
 ## Slice 2 build (2026-10-04)
 - Postgres is on Neon (Postgres 18). The first migration was regenerated with `varchar(32)` postcodes and applied. 4 tables plus `__drizzle_migrations`.
 - **Reverse radius: 50 m** (`NIPOST_REVERSE_RADIUS_M`). At 25 m, Yaba returned area-only; at 50 m it returns a medium unit, which the customer then confirms.

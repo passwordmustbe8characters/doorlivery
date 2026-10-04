@@ -1,5 +1,5 @@
 // Server-rendered customer page (SPEC 8). Plain JS + Leaflet, no framework.
-import { en } from '../i18n/en.js';
+import { en } from '@doorlivery/shared';
 
 const LEAFLET_CSS = {
   href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',

@@ -23,6 +23,11 @@ const EnvSchema = z.object({
   // Public OSM tiles have a usage policy; switch provider before launch (SPEC 3).
   MAP_TILE_URL: z.string().default('https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
   MAP_TILE_ATTRIBUTION: z.string().default('&copy; OpenStreetMap contributors'),
+  // Vendor sessions: logged out after this long without activity, and always after the absolute limit.
+  SESSION_IDLE_HOURS: z.coerce.number().positive().default(72),
+  SESSION_ABSOLUTE_DAYS: z.coerce.number().positive().default(30),
+  // Extra origins allowed to make state-changing /api calls (comma-separated). PUBLIC_BASE_URL is always allowed.
+  EXTRA_ALLOWED_ORIGINS: z.string().default(''),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -34,3 +39,12 @@ if (!parsed.success) {
 }
 
 export const config = parsed.data;
+
+// The Vite dev server (http://localhost:5173) proxies /api, so its origin is allowed in development only.
+export const allowedOrigins = new Set(
+  [
+    new URL(config.PUBLIC_BASE_URL).origin,
+    ...(config.NODE_ENV === 'development' ? ['http://localhost:5173'] : []),
+    ...config.EXTRA_ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
+  ].map((o) => new URL(o).origin),
+);
