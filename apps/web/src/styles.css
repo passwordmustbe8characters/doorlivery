@@ -44,6 +44,10 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 button.link { background: none; color: var(--brand); padding: 6px; }
 .danger-link { background: none; color: var(--danger); width: 100%; margin-top: 8px; }
 .error { color: var(--danger); margin: 0 0 12px; }
+.toast-region { position: fixed; left: 0; right: 0; bottom: 16px; display: flex; justify-content: center; padding: 0 16px; pointer-events: none; z-index: 2; }
+.toast { pointer-events: auto; display: flex; align-items: center; gap: 12px; max-width: 560px; width: 100%; background: var(--ink); color: #fff; border-radius: var(--radius); padding: 12px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.25); font-weight: 600; }
+.toast span { flex: 1; }
+.toast button.link { color: #fff; }
 .alert { border-color: var(--danger); background: #fdf3f3; }
 .alert p { margin: 0; font-weight: 600; color: var(--danger); }
 

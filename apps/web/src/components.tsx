@@ -1,4 +1,26 @@
+import { useEffect } from 'react';
 import { en, type DeliveryStatus } from '@doorlivery/shared';
+
+/** Live-update notice pinned to the bottom of the screen. Announced to screen readers; hides after 8 s. */
+export function Toast({ message, onClose }: { message: string | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(onClose, 8000);
+    return () => clearTimeout(t);
+  }, [message, onClose]);
+  return (
+    <div className="toast-region" role="status" aria-live="polite">
+      {message && (
+        <div className="toast">
+          <span>{message}</span>
+          <button type="button" className="link" onClick={onClose} aria-label={en.vendor.live.dismiss}>
+            ✕
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function StatusBadge({ status }: { status: DeliveryStatus }) {
   return <span className={`badge badge-${status}`}>{en.vendor.status[status] ?? status}</span>;

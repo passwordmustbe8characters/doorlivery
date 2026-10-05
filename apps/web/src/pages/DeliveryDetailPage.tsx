@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { en, formatNigerianPhone, type DeliveryStatus } from '@doorlivery/shared';
 import { api, RequestError, type DeliveryDetail, type ShareLink } from '../api';
-import { displayPostcode, ErrorText, formatWhen, StatusBadge } from '../components';
+import { displayPostcode, ErrorText, formatWhen, StatusBadge, Toast } from '../components';
+import { describeNewEvent } from '../live-changes';
 import { linkHandler } from '../router';
+import { usePolling } from '../usePolling';
 
 const t = en.vendor.detail;
 const CAN_SEND_CUSTOMER: DeliveryStatus[] = ['created', 'awaiting_customer'];
@@ -35,19 +37,38 @@ export function DeliveryDetailPage({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
   const [riderPhone, setRiderPhone] = useState('');
 
-  const load = useCallback(async () => {
-    try {
-      const detail = await api.get(id);
-      setD(detail);
-      setRiderPhone((p) => p || detail.rider_phone || '');
-    } catch (e) {
-      setError(e instanceof RequestError ? e.message : en.vendor.errorGeneric);
-    }
-  }, [id]);
+  const [toast, setToast] = useState<string | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
+  // How many timeline events we've already shown; null until the first load.
+  const seenEvents = useRef<number | null>(null);
+
+  const load = useCallback(
+    async (background = false) => {
+      try {
+        const detail = await api.get(id);
+        // Tell the vendor about anything the customer, rider or system did since the last load.
+        if (seenEvents.current !== null) {
+          const notice = describeNewEvent(detail.customer_name, detail.events, seenEvents.current);
+          if (notice) setToast(notice);
+        }
+        seenEvents.current = detail.events.length;
+        setD(detail);
+        setRiderPhone((p) => p || detail.rider_phone || '');
+      } catch (e) {
+        // A failed background refresh stays quiet (flaky mobile data); the next one will try again.
+        if (!background) setError(e instanceof RequestError ? e.message : en.vendor.errorGeneric);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
+    seenEvents.current = null;
     void load();
   }, [load]);
+
+  // Live updates: refresh every 10 s while the page is on screen, but not while an action is running.
+  usePolling(() => load(true), 10_000, !busy && !!d && !CLOSED.includes(d.status));
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -214,6 +235,7 @@ export function DeliveryDetailPage({ id }: { id: string }) {
           {t.cancelDelivery}
         </button>
       )}
+      <Toast message={toast} onClose={closeToast} />
     </>
   );
 }

@@ -72,6 +72,15 @@ app.use(errorHandler);
 
 const server = app.listen(config.PORT, () => {
   console.log(`API listening on http://localhost:${config.PORT}`);
+  // Launch reminders in the Render log. Only the key's prefix is checked; the key is never printed.
+  if (config.NODE_ENV === 'production') {
+    if (config.MAP_TILE_URL.includes('tile.openstreetmap.org')) {
+      console.warn('WARNING: MAP_TILE_URL is the public OpenStreetMap server, which is not for production use. Set a tile provider before launch.');
+    }
+    if (config.NIPOST_API_KEY?.toLowerCase().startsWith('nipost_test')) {
+      console.warn('WARNING: NIPOST_API_KEY is a test key. Switch to a live key before launch.');
+    }
+  }
 });
 
 // Retention job: on by default in production, off in development unless asked for.

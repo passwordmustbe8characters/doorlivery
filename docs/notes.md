@@ -134,8 +134,24 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - [~] Does a test key return real data? Coverage and accuracy in Lagos? The data looks real, and all 15 land points were covered (14 with a high-confidence unit). Ground-truth accuracy still needs checking on site.
 - [~] Rate limits and credit cost for L1 calls? The limit is 600 per window (window length unknown). No credit info is in the responses.
 - [ ] What does `verified: false` on lookup mean? Will a live key behave differently from the test key?
+- [ ] **(2026-10-05) Why does our key now return no data anywhere?** Was the test dataset reset or the key's access changed? How do we get a live key, what does it cost, and what are its rate limits?
 - [ ] May we store NIPOST-derived responses and our own pin data? (Ask NIPOST in writing.)
 - [ ] Map tile provider and terms for production.
+
+## Post-launch changes (2026-10-05)
+- **Live updates in the vendor app.** The delivery page refreshes every 10 s and the list every 15 s, only while the tab is visible: it pauses when the phone is locked or the tab is in the background, and refreshes as soon as the vendor comes back. A notice appears for anything the customer, rider or system did (e.g. "Chidi: Customer confirmed location"), never for the vendor's own taps. Polling stops once a delivery is closed. No server changes, no new dependencies. 10 unit tests (`apps/web/src/live-changes.test.ts`).
+- **npm audit: 5 → 0.**
+  - `drizzle-orm` 0.36 → 0.45.3: high, SQL injection via identifiers (GHSA-gpj5-g38j-94v9). Not exploitable here (no user input as identifiers), upgraded anyway.
+  - `drizzle-kit` 0.28 → 0.31.11.
+  - The remaining old `esbuild` inside `@esbuild-kit/core-utils` (dev-server issue GHSA-67mh-4wv8-2f99, never run by us) is pinned to `^0.28.0` through `overrides` in the root `package.json`. `npm ls` labels it "invalid" because of the override; that's cosmetic. A clean `npm ci --include=dev`, the build, `drizzle-kit generate`/`check`/`migrate` and every test suite pass.
+- **Startup warnings in production logs:** the public OSM tile server is still in use, or the NIPOST key is a test key (only the prefix is checked).
+
+### NIPOST data is empty for our key (found 2026-10-05) ⚠
+- All 15 land probe points that returned postcodes on 3–4 Oct now return `found: false`, even at a 250 m radius. Nearby returns `[]`. Lookup of `LA-11-A12-GN-01` (valid on 3 Oct) now returns `status: "not_found"`.
+- The key is still accepted (HTTP 200; calls without a key get 401), and the response shapes haven't changed. So either NIPOST reset the test dataset, or the test key lost data access.
+- **Live impact:** every customer sees "couldn't find a postcode". They can still confirm, the rider message says "see map", and deliveries complete (designed fallback), but no postcodes are being collected.
+- **Action:** ask NIPOST (see the open questions). Re-run `npm run probe:nipost` to see when data is back.
+- **Testing without NIPOST:** a stand-in server replaying `docs/nipost-samples/` (point `NIPOST_API_BASE_URL` at it) let the slice 5 suite pass (36/36) on 2026-10-05.
 
 ## Slice 6 hardening checklist (2026-10-05)
 Verified locally with the server in production mode, unless marked as a deploy step.
@@ -185,13 +201,13 @@ Two Blueprints:
 
 Neither uses a Render cron job: the retention job runs inside the API.
 
-- [ ] Create a **separate production database**: a Neon branch or project, not the dev one. Run migrations against it.
-- [ ] Create the service from a Blueprint (New → Blueprint → set "Blueprint path"), in the Frankfurt region.
-- [ ] Set the secrets in the Render dashboard: `DATABASE_URL`, `NIPOST_API_KEY` (a live key when you have one), `DELIVERY_CODE_SECRET` (a new random value), `PUBLIC_BASE_URL`.
-- [ ] First deploy succeeds; `/health` returns `{"status":"ok","db":"ok"}`.
-- [ ] Confirm `@node-rs/argon2` installs on Render (linux-x64 prebuilt). If it doesn't, switch to `bcryptjs`.
-- [ ] `npm run vendor:create` against the production database, run locally with the production `DATABASE_URL` in a shell variable, not in `.env`.
-- [ ] Phone test over HTTPS: vendor login, customer "Use my location", rider location prompt, the full journey.
+- [x] Create a **separate production database**: a Neon branch or project, not the dev one. Run migrations against it.
+- [x] Create the service, in the Frankfurt region. **Done by hand as a Free Web Service** (2026-10-05): the Blueprint flow asked for a card. The settings match `render.free.yaml`: build `npm ci --include=dev && npm run build`, start `npm start`, health check `/health`, `NODE_VERSION=22`.
+- [x] Set the secrets in the Render dashboard: `DATABASE_URL`, `NIPOST_API_KEY` (still the test key), `DELIVERY_CODE_SECRET` (a new random value), `PUBLIC_BASE_URL`.
+- [x] First deploy succeeds; `/health` returns `{"status":"ok","db":"ok"}`. The first attempt failed with `DATABASE_URL: Invalid url` (a pasted value that wasn't a bare URL); the startup check caught it as designed.
+- [x] `@node-rs/argon2` installs and works on Render (linux-x64): vendor login works in production.
+- [x] `npm run vendor:create` against the production database, run locally with the production `DATABASE_URL` in a shell variable, not in `.env`.
+- [x] Phone test over HTTPS (2026-10-05): vendor login, customer "Use my location", rider location prompt, the full journey to delivered.
 - [ ] Optional: custom domain through Cloudflare DNS (CNAME to Render), then update `PUBLIC_BASE_URL`.
 - [ ] Before launch: switch to a production map tile provider (the public OSM tile server is not for production use; SPEC 3).
 

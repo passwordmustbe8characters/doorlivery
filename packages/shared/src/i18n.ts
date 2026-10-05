@@ -195,5 +195,11 @@ export const en = {
     } as Record<string, string>,
     errorGeneric: 'Something went wrong. Please try again.',
     offline: "Can't reach the server. Check your connection.",
+    // Live updates: shown when the customer or rider does something while the vendor has the app open.
+    live: {
+      update: (customer: string, what: string) => `${customer}: ${what}`,
+      dismiss: 'Dismiss',
+      unknownCustomer: 'A delivery',
+    },
   },
 } as const;

@@ -1,26 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { en } from '@doorlivery/shared';
-import { api, RequestError, type DeliveryPage } from '../api';
-import { displayPostcode, ErrorText, formatWhen, StatusBadge } from '../components';
+import { api, RequestError, type Delivery, type DeliveryPage } from '../api';
+import { displayPostcode, ErrorText, formatWhen, StatusBadge, Toast } from '../components';
+import { describeListChange } from '../live-changes';
 import { linkHandler } from '../router';
+import { usePolling } from '../usePolling';
 
 const t = en.vendor.list;
 
 export function DeliveryListPage({ page }: { page: number }) {
   const [data, setData] = useState<DeliveryPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
+  const current = useRef<Delivery[] | null>(null);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+
+  const load = useCallback(
+    async (background = false) => {
+      try {
+        const d = await api.list(page);
+        if (pageRef.current !== page) return; // vendor moved to another page meanwhile
+        if (background && current.current) {
+          const change = describeListChange(current.current, d.data);
+          if (change) setToast(change);
+        }
+        current.current = d.data;
+        setData(d);
+      } catch (e) {
+        if (!background) setError(e instanceof RequestError ? e.message : en.vendor.errorGeneric);
+      }
+    },
+    [page],
+  );
 
   useEffect(() => {
-    let live = true;
+    current.current = null;
     setError(null);
-    api
-      .list(page)
-      .then((d) => live && setData(d))
-      .catch((e) => live && setError(e instanceof RequestError ? e.message : en.vendor.errorGeneric));
-    return () => {
-      live = false;
-    };
-  }, [page]);
+    void load();
+  }, [load]);
+
+  // Live updates: refresh every 15 s while the list is on screen.
+  usePolling(() => load(true), 15_000);
 
   const pages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
@@ -72,6 +94,7 @@ export function DeliveryListPage({ page }: { page: number }) {
           )}
         </nav>
       )}
+      <Toast message={toast} onClose={closeToast} />
     </>
   );
 }

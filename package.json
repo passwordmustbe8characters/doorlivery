@@ -16,7 +16,7 @@
     "db:migrate": "npm run db:migrate -w @doorlivery/api",
     "db:seed": "npm run db:seed -w @doorlivery/api",
     "retention": "npm run retention -w @doorlivery/api --",
-    "test": "npm run test -w @doorlivery/api",
+    "test": "npm run test --workspaces --if-present",
     "probe:nipost": "tsx scripts/probe-nipost.ts",
     "vendor:create": "tsx scripts/create-vendor.ts"
   },
@@ -27,5 +27,10 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "@esbuild-kit/core-utils": {
+      "esbuild": "^0.28.0"
+    }
   }
 }
