@@ -8,6 +8,7 @@ import { requireSameOrigin } from './lib/origin.js';
 import { authRouter } from './routes/auth.js';
 import { customerRouter } from './routes/customer.js';
 import { deliveriesRouter } from './routes/deliveries.js';
+import { riderRouter } from './routes/rider.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -21,6 +22,7 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/c', customerRouter);
+app.use('/r', riderRouter);
 
 // Vendor API: cookie-authenticated, so every state-changing call must come from our own origin.
 app.use('/api', (_req, res, next) => {

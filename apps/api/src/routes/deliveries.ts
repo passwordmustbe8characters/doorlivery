@@ -1,6 +1,6 @@
 // Vendor delivery routes (SPEC 6). All queries are scoped to the logged-in vendor.
 import { Router, type Request } from 'express';
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gte, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { en, normalizeNigerianPhone, whatsappUrl, type DeliveryStatus } from '@doorlivery/shared';
 import { config } from '../config.js';
@@ -9,11 +9,13 @@ import { deliveries, deliveryEvents } from '../db/schema.js';
 import { AppError } from '../lib/errors.js';
 import { requireVendor } from '../lib/session.js';
 import { generateToken, hashToken } from '../lib/tokens.js';
+import { MAX_CODE_ATTEMPTS } from './rider.js';
 
 // Which statuses each action may start from.
 const CAN_SEND_CUSTOMER_LINK: DeliveryStatus[] = ['created', 'awaiting_customer'];
 const CAN_ASSIGN: DeliveryStatus[] = ['ready', 'assigned']; // "assigned" = re-send to the same or a new rider
 const CAN_CANCEL: DeliveryStatus[] = ['created', 'awaiting_customer', 'ready', 'assigned', 'picked_up', 'arrived'];
+const CAN_UNLOCK: DeliveryStatus[] = ['assigned', 'picked_up', 'arrived'];
 
 const phone = z
   .string()
@@ -98,6 +100,7 @@ function present(d: DeliveryRow) {
     dropoff_postcode: d.dropoff_postcode,
     dropoff_confidence: d.dropoff_confidence,
     landmark_note: d.landmark_note,
+    code_locked: d.code_attempts >= MAX_CODE_ATTEMPTS,
     delivered_at: d.delivered_at,
     created_at: d.created_at,
     updated_at: d.updated_at,
@@ -196,6 +199,25 @@ deliveriesRouter.post('/:id/assign', async (req, res) => {
     link,
   });
   res.json({ link, whatsapp_url: whatsappUrl(row.rider_phone!, text) });
+});
+
+// After 5 wrong codes the rider is locked out (SPEC 6). The vendor checks with both sides by phone, then unlocks.
+deliveriesRouter.post('/:id/unlock-code', async (req, res) => {
+  const id = deliveryId(req);
+  const row = await database().transaction(async (tx) => {
+    const [updated] = await tx
+      .update(deliveries)
+      .set({ code_attempts: 0 })
+      .where(and(ownDelivery(req, id), inArray(deliveries.status, CAN_UNLOCK), gte(deliveries.code_attempts, MAX_CODE_ATTEMPTS)))
+      .returning();
+    if (!updated) {
+      const [exists] = await tx.select({ id: deliveries.id }).from(deliveries).where(ownDelivery(req, id)).limit(1);
+      throw new AppError(exists ? 'VALIDATION_ERROR' : 'NOT_FOUND', exists ? en.errors.notLocked : en.errors.notFound);
+    }
+    await tx.insert(deliveryEvents).values({ delivery_id: id, event_type: 'code_unlocked', actor: 'vendor' });
+    return updated;
+  });
+  res.json(present(row));
 });
 
 deliveriesRouter.post('/:id/cancel', async (req, res) => {

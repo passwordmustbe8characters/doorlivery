@@ -11,6 +11,7 @@ export interface Delivery {
   dropoff_postcode: string | null;
   dropoff_confidence: string | null;
   landmark_note: string | null;
+  code_locked: boolean;
   delivered_at: string | null;
   created_at: string;
   updated_at: string;
@@ -92,4 +93,5 @@ export const api = {
   assign: (id: string, rider_phone?: string) =>
     request<ShareLink>('POST', `/api/deliveries/${encodeURIComponent(id)}/assign`, { rider_phone }),
   cancel: (id: string) => request<Delivery>('POST', `/api/deliveries/${encodeURIComponent(id)}/cancel`),
+  unlockCode: (id: string) => request<Delivery>('POST', `/api/deliveries/${encodeURIComponent(id)}/unlock-code`),
 };

@@ -80,6 +80,10 @@ export function DeliveryDetailPage({ id }: { id: string }) {
     if (window.confirm(t.cancelConfirm)) void run(() => api.cancel(id));
   };
 
+  const unlock = () => {
+    if (window.confirm(t.unlockConfirm)) void run(() => api.unlockCode(id));
+  };
+
   async function copy(link: string) {
     try {
       await navigator.clipboard.writeText(link);
@@ -139,6 +143,15 @@ export function DeliveryDetailPage({ id }: { id: string }) {
       </dl>
 
       <ErrorText message={error} />
+
+      {d.code_locked && !CLOSED.includes(d.status) && (
+        <section className="card stack alert" role="alert">
+          <p>{t.codeLocked}</p>
+          <button type="button" className="primary" disabled={busy} onClick={unlock}>
+            {t.unlockCode}
+          </button>
+        </section>
+      )}
 
       {CAN_SEND_CUSTOMER.includes(d.status) && (
         <section className="card stack">

@@ -45,6 +45,37 @@ export const en = {
     delivered: 'Your package has been delivered. Thank you!',
   },
 
+  rider: {
+    title: 'Delivery job',
+    from: (vendor: string) => `Delivery for ${vendor}`,
+    pickup: 'Pickup',
+    dropoff: 'Drop-off',
+    postcode: 'Postcode',
+    noPostcode: 'No postcode. Use the map.',
+    landmark: 'Landmark',
+    customer: 'Customer',
+    openMap: 'Open Map',
+    callCustomer: 'Call customer',
+    pickedUp: 'I have picked up',
+    arrived: 'I have arrived',
+    codeLabel: "Customer's 4-digit code",
+    delivered: 'Delivered',
+    locationNote: "When you tap Delivered, we'll ask for your location to confirm the drop-off.",
+    working: 'Please wait…',
+    done: 'Done ✓',
+    codeFormat: 'Enter the 4 digits the customer gives you.',
+    wrongCode: (left: number) => `Wrong code. ${left} ${left === 1 ? 'try' : 'tries'} left.`,
+    locked: 'Too many wrong codes. Call the seller to continue.',
+    deliveredTitle: 'Delivered ✓',
+    deliveredBody: 'This delivery is complete. Thank you!',
+    status: {
+      assigned: 'Go to pickup',
+      picked_up: 'On the way to the customer',
+      arrived: 'At the drop-off. Get the code from the customer.',
+    } as Record<string, string>,
+    errorGeneric: 'Something went wrong. Please try again.',
+  },
+
   // WhatsApp message templates (SPEC 9).
   messages: {
     customer: (p: { customer_name: string; business_name: string; link: string }) =>
@@ -64,6 +95,7 @@ export const en = {
     notFound: 'Delivery not found.',
     invalidPhone: 'Enter a valid Nigerian mobile number, e.g. 0803 123 4567.',
     wrongStatus: "This can't be done at the delivery's current stage.",
+    notLocked: 'The delivery code is not locked.',
   },
 
   vendor: {
@@ -84,6 +116,7 @@ export const en = {
       next: 'Next',
       page: (page: number, pages: number) => `Page ${page} of ${pages}`,
       noPostcode: 'No postcode yet',
+      codeLocked: 'Code locked',
     },
     form: {
       title: 'New delivery',
@@ -117,6 +150,9 @@ export const en = {
       copyLink: 'Copy link',
       copied: 'Copied',
       linkLabel: 'Link',
+      codeLocked: 'The rider entered a wrong code 5 times, so the code is locked. Call the customer and rider, then unlock it.',
+      unlockCode: 'Unlock code',
+      unlockConfirm: 'Unlock the delivery code? The rider gets 5 more tries.',
       cancelDelivery: 'Cancel delivery',
       cancelConfirm: 'Cancel this delivery? The customer and rider links will stop working.',
     },
@@ -141,6 +177,8 @@ export const en = {
       delivered: 'Delivered',
       failed: 'Failed',
       cancelled: 'Cancelled',
+      code_locked: 'Code locked after 5 wrong tries',
+      code_unlocked: 'Code unlocked by you',
     } as Record<string, string>,
     errorGeneric: 'Something went wrong. Please try again.',
     offline: "Can't reach the server. Check your connection.",

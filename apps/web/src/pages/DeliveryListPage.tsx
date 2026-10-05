@@ -40,7 +40,10 @@ export function DeliveryListPage({ page }: { page: number }) {
             <a className="card item" href={`/deliveries/${d.id}`} onClick={linkHandler(`/deliveries/${d.id}`)}>
               <div className="row between">
                 <strong>{d.customer_name}</strong>
-                <StatusBadge status={d.status} />
+                <span className="row">
+                  {d.code_locked && <span className="badge badge-failed">{t.codeLocked}</span>}
+                  <StatusBadge status={d.status} />
+                </span>
               </div>
               <div className="row between muted small">
                 <span>{d.dropoff_postcode ? displayPostcode(d.dropoff_postcode) : t.noPostcode}</span>

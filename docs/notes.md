@@ -55,6 +55,21 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - Latency: ~130–160 ms per call. The first call took ~770 ms (cold connection).
 - CORS is `*`, and the API allows an `X-Widget-Origin` header. We still call it server-side only.
 
+## Slice 5 build (2026-10-04)
+- **Rider page `/r/:token`:** server-rendered, no framework, ~5.6 KB, strict CSP, nothing loaded from outside. It has everything SPEC 8 lists, in order. "Open Map" uses `https://www.google.com/maps/search/?api=1&query=lat,lng`, which opens the maps app on Android and iPhone.
+- **Rider events:** `picked_up` from `assigned`; `arrived` from `assigned`/`picked_up` (riders sometimes skip a tap); `delivered` from any of the three. A repeated tap does nothing; going back a step is refused.
+- **Code check:**
+  - At most 5 wrong codes. The counter goes up in a single guarded `UPDATE … WHERE code_attempts < 5`, so parallel guesses can't get extra tries (tested with 12 at once: stopped at exactly 5).
+  - The 5th miss writes a `code_locked` event (actor `system`). The vendor sees a red banner on the delivery and a "Code locked" badge in the list.
+  - **Added beyond the spec:** `POST /api/deliveries/:id/unlock-code`, so the vendor can reset the counter after calling both sides, and the delivery isn't stuck forever. It is logged as `code_unlocked`.
+- **Rider GPS:**
+  - Location is asked for only when the rider taps Delivered, with one sentence of explanation. If it's refused or takes more than 10 s, the delivery still completes.
+  - The GPS fix is always stored on the `delivered` event.
+  - It becomes a **`rider_confirm` row in `location_points`** only if all of these hold: the delivery has a postcode, accuracy ≤ 100 m, and the fix is ≤ 150 m from the customer's pin.
+  - Confidence: high ≤ 25 m, medium ≤ 60 m, otherwise low.
+  - Far or imprecise fixes are kept on the event but not added to the dataset.
+- **Re-assigning a rider** makes a new rider link, and the old one stops working. Cancel kills both links.
+
 ## Slice 4 build (2026-10-04)
 - **`POST /c/:token/confirm`** takes `lat`, `lng`, `accuracy_m?`, `postcode?` (must match the NIPOST format) and `landmark_note?` (up to 300 chars). It moves `awaiting_customer`/`created` to **`ready`** in one transaction, using the same token and an open-status guard, so a double tap or a re-sent link can't confirm twice.
 - **The chosen postcode is checked again on the server.** NIPOST is asked again for the same point:
