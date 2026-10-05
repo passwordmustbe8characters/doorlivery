@@ -3,7 +3,7 @@ import { en, type ApiError, type DeliveryStatus } from '@doorlivery/shared';
 export interface Delivery {
   id: string;
   status: DeliveryStatus;
-  customer_name: string;
+  customer_name: string | null; // null once removed by the retention job
   customer_phone: string | null;
   pickup_note: string;
   item_note: string | null;

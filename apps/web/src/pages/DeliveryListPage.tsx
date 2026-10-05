@@ -39,7 +39,7 @@ export function DeliveryListPage({ page }: { page: number }) {
           <li key={d.id}>
             <a className="card item" href={`/deliveries/${d.id}`} onClick={linkHandler(`/deliveries/${d.id}`)}>
               <div className="row between">
-                <strong>{d.customer_name}</strong>
+                <strong>{d.customer_name ?? <span className="muted">{t.nameRemoved}</span>}</strong>
                 <span className="row">
                   {d.code_locked && <span className="badge badge-failed">{t.codeLocked}</span>}
                   <StatusBadge status={d.status} />

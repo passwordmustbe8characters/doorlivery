@@ -112,14 +112,14 @@ export function DeliveryDetailPage({ id }: { id: string }) {
         ← {t.back}
       </a>
       <div className="row between">
-        <h1>{d.customer_name}</h1>
+        <h1>{d.customer_name ?? en.vendor.list.nameRemoved}</h1>
         <StatusBadge status={d.status} />
       </div>
 
       <dl className="card facts">
         <dt>{t.customer}</dt>
         <dd>
-          {d.customer_name}
+          {d.customer_name ?? <span className="muted">{en.vendor.list.nameRemoved}</span>}
           {d.customer_phone && <span className="muted"> · {formatNigerianPhone(d.customer_phone)}</span>}
         </dd>
         <dt>{t.pickup}</dt>

@@ -137,5 +137,85 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - [ ] May we store NIPOST-derived responses and our own pin data? (Ask NIPOST in writing.)
 - [ ] Map tile provider and terms for production.
 
-## Slice 6 hardening checklist
-_To be written in slice 6._
+## Slice 6 hardening checklist (2026-10-05)
+Verified locally with the server in production mode, unless marked as a deploy step.
+
+### Rate limits (in memory, per instance)
+- [x] Customer pages: 120 requests per minute per IP. Resolve: 30 per 10 min per link. Confirm: 10 per 10 min per link (tested: the 11th call gets 429, even from new IPs).
+- [x] Rider pages: 120 per minute per IP. Actions: 60 per 10 min per link. Code guesses are separately capped at 5.
+- [x] Vendor API: 600 per 10 min per IP. Login: 20 per 15 min per IP, and 5 failures per 15 min per email (slice 3).
+- [x] Over the limit: `429 RATE_LIMITED` with `Retry-After`. Browsers get a "Please slow down" page.
+- [x] Behind Render, `trust proxy = 1`, so limits apply to the real client IP.
+
+### Link tokens
+- [x] Random 256-bit, stored hashed (slices 2–5).
+- [x] Customer and rider links stop working 7 days after the delivery closes (`TOKEN_TTL_AFTER_CLOSE_DAYS`). A cancel kills them at once. The retention job also clears expired token hashes.
+- [x] Re-sending a link turns off the old one.
+
+### Retention (NDPA 2023)
+- [x] Once a delivery has been closed for 90 days (`RETENTION_DAYS`):
+  - the **customer's name** is deleted (added 2026-10-05; the vendor app shows "Name removed (data retention)", migration `0004` made the column nullable);
+  - customer and rider phone numbers are deleted;
+  - coordinates on the delivery and its events are rounded to 3 decimals (~110 m);
+  - `location_points` rows are unlinked from the delivery (`delivery_id = null`), so the postcode dataset keeps the point but not who it belongs to;
+  - `redacted_at` is set.
+- [x] Expired vendor sessions are deleted.
+- [x] Safe to run more than once (tested: the second run changed nothing). Open deliveries are never touched.
+- [x] It runs inside the API at start-up (+30 s) and every 24 h in production. Manual run: `npm run retention` (`-- --dry-run` to preview).
+- [ ] **Legal review (open question for counsel):** after 90 days, the **landmark text** and the precise **`location_points` coordinates** are still kept. The landmark is free text and may mention a person or a house; the dataset points are no longer linked to a delivery or person, but they are exact locations. Confirm with counsel and NIPOST (SPEC 12) whether either needs deleting or coarsening.
+
+### Errors and logging
+- [x] Customers, riders and mistyped URLs get friendly HTML pages (404, 429, 500). The API keeps JSON errors.
+- [x] Request log line: `METHOD /path STATUS ms`. Link tokens are replaced with `:token`, query strings dropped, IDs shown as `:id`. No bodies, no IPs.
+- [x] Error logs show the error name only (driver messages can contain SQL parameters). NIPOST failures log the kind and status only.
+- [x] Tested: 140 log lines with no tokens, phone numbers, coordinates or IPs.
+
+### Security headers
+- [x] On every response: `Referrer-Policy: no-referrer` (link tokens never leak to map tiles or CDNs), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Permissions-Policy: geolocation=(self)`, `Cross-Origin-Resource-Policy: same-origin`. HSTS in production.
+- [x] Each page has its own strict CSP (customer, rider, vendor app, error pages).
+
+### Configuration
+- [x] Production refuses to start without `DATABASE_URL`, `NIPOST_API_KEY` or `DELIVERY_CODE_SECRET`, or with a non-https `PUBLIC_BASE_URL`.
+- [x] Graceful shutdown on SIGTERM: finishes in-flight requests, then closes the database pool.
+
+### Deploy to Render (deploy steps)
+Two Blueprints:
+- **`render.free.yaml`**, for the first phone test. Free plan; no pre-deploy migration; sleeps after 15 min idle.
+- **`render.yaml`**, for later, when real vendors use it. Starter plan (~$7/month); runs migrations automatically before each deploy and stays awake.
+
+Neither uses a Render cron job: the retention job runs inside the API.
+
+- [ ] Create a **separate production database**: a Neon branch or project, not the dev one. Run migrations against it.
+- [ ] Create the service from a Blueprint (New → Blueprint → set "Blueprint path"), in the Frankfurt region.
+- [ ] Set the secrets in the Render dashboard: `DATABASE_URL`, `NIPOST_API_KEY` (a live key when you have one), `DELIVERY_CODE_SECRET` (a new random value), `PUBLIC_BASE_URL`.
+- [ ] First deploy succeeds; `/health` returns `{"status":"ok","db":"ok"}`.
+- [ ] Confirm `@node-rs/argon2` installs on Render (linux-x64 prebuilt). If it doesn't, switch to `bcryptjs`.
+- [ ] `npm run vendor:create` against the production database, run locally with the production `DATABASE_URL` in a shell variable, not in `.env`.
+- [ ] Phone test over HTTPS: vendor login, customer "Use my location", rider location prompt, the full journey.
+- [ ] Optional: custom domain through Cloudflare DNS (CNAME to Render), then update `PUBLIC_BASE_URL`.
+- [ ] Before launch: switch to a production map tile provider (the public OSM tile server is not for production use; SPEC 3).
+
+### Free plan: manual commands
+The free plan has no pre-deploy step and no Render Shell, so run these **on your PC** in PowerShell, pointing at the production database for that one window only.
+
+A database URL set in the shell always wins over `.env` (checked 2026-10-05), so these never touch the dev database by mistake. Closing the window, or `Remove-Item`, clears it.
+
+```powershell
+cd C:\Users\PC\Desktop\doorlivery
+$env:DATABASE_URL = "<production connection string from Neon>"
+
+npm run db:migrate                 # BEFORE deploying any commit that adds a file in apps/api/drizzle/
+npm run retention -- --dry-run     # preview what the 90-day job would change
+npm run retention                  # run it now (it also runs by itself whenever the service wakes)
+npm run vendor:create              # invite a vendor into production
+
+Remove-Item Env:DATABASE_URL       # back to the dev database
+```
+
+- **Order on the free plan:** migrate first, then push/deploy. The old code still works with the new columns, because every migration so far only adds columns or relaxes a NOT NULL. On the Starter plan, `preDeployCommand` does the migrate step for you.
+- **Retention on the free plan:** it runs 30 s after each start. A sleeping service wakes on the first request, so it runs at least once on any day the app is used. Running it by hand is optional.
+
+### Known limits (after the MVP)
+- Rate-limit and login counters live in memory: they reset on deploy and aren't shared between instances. Move them to Postgres if we run more than one instance.
+- In production the app runs TypeScript through `tsx` (no compile step). That's fine for an MVP; add a build step if start-up time matters.
+- The `failed` status exists, but nothing sets it yet. There's no UI for it.

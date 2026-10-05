@@ -28,11 +28,28 @@ const EnvSchema = z.object({
   SESSION_ABSOLUTE_DAYS: z.coerce.number().positive().default(30),
   // Keys the delivery-code HMAC and encryption. 32+ random bytes, base64url.
   DELIVERY_CODE_SECRET: z.preprocess(blankToUndefined, z.string().min(32).optional()),
+  // Customer and rider links stop working this many days after a delivery closes (SPEC 6).
+  TOKEN_TTL_AFTER_CLOSE_DAYS: z.coerce.number().positive().default(7),
+  // Personal data on closed deliveries is removed or coarsened after this many days (SPEC 7, NDPA 2023).
+  RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  // Run the retention job inside the API process (at start and every 24 h). Off in development by default.
+  RETENTION_JOB_ENABLED: z.enum(['true', 'false']).optional(),
   // Extra origins allowed to make state-changing /api calls (comma-separated). PUBLIC_BASE_URL is always allowed.
   EXTRA_ALLOWED_ORIGINS: z.string().default(''),
 });
 
-const parsed = EnvSchema.safeParse(process.env);
+// In production, missing secrets or an http base URL are a deploy mistake: refuse to start.
+const ProductionChecks = EnvSchema.superRefine((env, ctx) => {
+  if (env.NODE_ENV !== 'production') return;
+  for (const key of ['DATABASE_URL', 'NIPOST_API_KEY', 'DELIVERY_CODE_SECRET'] as const) {
+    if (!env[key]) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [key], message: 'required in production' });
+  }
+  if (!env.PUBLIC_BASE_URL.startsWith('https://')) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['PUBLIC_BASE_URL'], message: 'must be https:// in production' });
+  }
+});
+
+const parsed = ProductionChecks.safeParse(process.env);
 if (!parsed.success) {
   // Print only variable names and problems, never values.
   const problems = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);

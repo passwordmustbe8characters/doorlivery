@@ -63,7 +63,8 @@ export const deliveries = pgTable(
       .notNull()
       .references(() => vendors.id),
     pickup_note: text('pickup_note').notNull(),
-    customer_name: varchar('customer_name', { length: 200 }).notNull(),
+    // Required at create time (API validation); nullable only so the retention job can delete it.
+    customer_name: varchar('customer_name', { length: 200 }),
     customer_phone: varchar('customer_phone', { length: 32 }),
     item_note: text('item_note'),
     status: varchar('status', { length: 32 }).notNull().default('created'),
@@ -80,9 +81,14 @@ export const deliveries = pgTable(
     dropoff_confidence: varchar('dropoff_confidence', { length: 16 }),
     landmark_note: text('landmark_note'),
     delivered_at: timestamp('delivered_at', { withTimezone: true }),
+    // When the delivery closed (delivered / cancelled / failed). Drives link expiry and retention.
+    closed_at: timestamp('closed_at', { withTimezone: true }),
+    // Set by the retention job once phones are deleted and coordinates coarsened.
+    redacted_at: timestamp('redacted_at', { withTimezone: true }),
   },
   (t) => [
     index('deliveries_vendor_created_idx').on(t.vendor_id, t.created_at.desc()),
+    index('deliveries_closed_idx').on(t.closed_at),
     check('deliveries_status_check', sql`${t.status} in (${inList(DELIVERY_STATUSES)})`),
     check(
       'deliveries_confidence_check',

@@ -1,0 +1,1 @@
+ALTER TABLE "deliveries" ALTER COLUMN "customer_name" DROP NOT NULL;

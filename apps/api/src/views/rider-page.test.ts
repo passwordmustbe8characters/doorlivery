@@ -75,6 +75,12 @@ describe('rider page', () => {
     assert.ok(!html.includes('<img src=x'));
   });
 
+  it('no customer name (removed by retention): renders without it', () => {
+    const html = render({ customerName: null });
+    assert.ok(!html.includes('>Customer<'));
+    assert.ok(html.includes('LA 12 B04 EK 01'));
+  });
+
   it('no postcode: tells the rider to use the map', () => {
     assert.ok(render({ postcode: null }).includes('No postcode. Use the map.'));
   });

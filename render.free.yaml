@@ -1,0 +1,39 @@
+# Render Blueprint, FREE plan variant: for the first phone test over HTTPS.
+# The paid (Starter) version is render.yaml; switch to it before real vendors use the app.
+#
+# Differences from render.yaml:
+# - plan: free. The service sleeps after 15 min without traffic; the next request wakes it (about 1 minute).
+# - No preDeployCommand (the free plan doesn't have one): run migrations by hand BEFORE each deploy that
+#   adds one. See "Free plan: manual commands" in docs/notes.md.
+# - No cron job (neither variant uses a Render cron job). The retention job runs inside the API at start-up
+#   and every 24 h, so on the free plan it runs each time the service wakes. You can also run it by hand.
+#
+# To use this file: in Render, New -> Blueprint, pick the repo, and set "Blueprint path" to render.free.yaml.
+services:
+  - type: web
+    name: doorlivery
+    runtime: node
+    # Frankfurt: same region as the Neon database (eu-central-1), and the closest Render region to Nigeria.
+    region: frankfurt
+    plan: free
+    # Dev dependencies are needed at build (Vite) and run time (tsx).
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: NIPOST_API_BASE_URL
+        value: https://api.postcode.gov.ng
+      # Set these in the Render dashboard (never in this file):
+      - key: PUBLIC_BASE_URL # e.g. https://doorlivery.onrender.com
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NIPOST_API_KEY
+        sync: false
+      # New random value for production. Never change it later: that invalidates every issued delivery code.
+      - key: DELIVERY_CODE_SECRET
+        sync: false

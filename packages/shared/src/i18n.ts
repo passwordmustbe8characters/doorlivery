@@ -84,6 +84,18 @@ export const en = {
       `Delivery from ${p.business_name}. Pickup: ${p.pickup_note}. Drop-off postcode: ${p.postcode}. Open details and map: ${p.link}`,
     // Used in the rider message when the customer confirmed a pin without a postcode.
     postcodePending: 'see map',
+    // "Hello there, …" if a delivery has no customer name (removed by the retention job).
+    customerNameFallback: 'there',
+  },
+
+  // Full-page errors shown in the browser.
+  errorPages: {
+    notFoundTitle: 'Page not found',
+    notFound: 'This page does not exist. Check the link and try again.',
+    tooManyTitle: 'Please slow down',
+    tooMany: 'Too many requests. Wait a minute, then try again.',
+    serverTitle: 'Something went wrong',
+    server: "We couldn't load this page. Please try again in a moment.",
   },
 
   // API error messages shown to vendors.
@@ -117,6 +129,7 @@ export const en = {
       page: (page: number, pages: number) => `Page ${page} of ${pages}`,
       noPostcode: 'No postcode yet',
       codeLocked: 'Code locked',
+      nameRemoved: 'Name removed (data retention)',
     },
     form: {
       title: 'New delivery',

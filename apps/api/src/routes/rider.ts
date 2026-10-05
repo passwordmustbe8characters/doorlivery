@@ -8,6 +8,8 @@ import { db } from '../db/client.js';
 import { deliveries, deliveryEvents, locationPoints, vendors } from '../db/schema.js';
 import { CODE_PATTERN, verifyCode } from '../lib/delivery-code.js';
 import { AppError } from '../lib/errors.js';
+import { isLinkExpired } from '../lib/link-expiry.js';
+import { byIp, byToken, rateLimit } from '../lib/rate-limit.js';
 import { distanceM, RIDER_POINT_MAX_ACCURACY_M, RIDER_POINT_MAX_DISTANCE_M, riderPointConfidence } from '../lib/geo.js';
 import { hashToken, TOKEN_PATTERN } from '../lib/tokens.js';
 import { renderLinkInvalidPage } from '../views/customer-page.js';
@@ -61,12 +63,13 @@ async function findByToken(req: Request) {
       customer_phone: deliveries.customer_phone,
       code_hash: deliveries.code_hash,
       code_attempts: deliveries.code_attempts,
+      closed_at: deliveries.closed_at,
     })
     .from(deliveries)
     .innerJoin(vendors, eq(deliveries.vendor_id, vendors.id))
     .where(eq(deliveries.rider_token_hash, hash))
     .limit(1);
-  return row ?? null;
+  return row && !isLinkExpired(row.closed_at) ? row : null;
 }
 
 export const riderRouter = Router();
@@ -76,6 +79,9 @@ riderRouter.use((_req, res, next) => {
   res.set('X-Robots-Tag', 'noindex');
   next();
 });
+// Per IP across all rider links, and per link for actions. Code guessing is separately capped at 5.
+riderRouter.use(rateLimit(120, 60_000, byIp));
+const actionLimit = rateLimit(60, 10 * 60_000, byToken);
 
 riderRouter.get('/:token', async (req, res) => {
   const nonce = randomBytes(16).toString('base64');
@@ -107,7 +113,7 @@ riderRouter.get('/:token', async (req, res) => {
   }
 });
 
-riderRouter.post('/:token/event', async (req, res) => {
+riderRouter.post('/:token/event', actionLimit, async (req, res) => {
   const d = await findByToken(req);
   if (!d || !ACTIVE.includes(d.status as DeliveryStatus)) throw new AppError('NOT_FOUND', en.customer.linkInvalid);
   const parsed = EventBody.safeParse(req.body);
@@ -131,7 +137,7 @@ riderRouter.post('/:token/event', async (req, res) => {
   res.json({ status: event });
 });
 
-riderRouter.post('/:token/delivered', async (req, res) => {
+riderRouter.post('/:token/delivered', actionLimit, async (req, res) => {
   const d = await findByToken(req);
   if (!d || !ACTIVE.includes(d.status as DeliveryStatus)) throw new AppError('NOT_FOUND', en.customer.linkInvalid);
   if (d.code_attempts >= MAX_CODE_ATTEMPTS) throw new AppError('FORBIDDEN', en.rider.locked);
@@ -161,7 +167,7 @@ riderRouter.post('/:token/delivered', async (req, res) => {
   await database().transaction(async (tx) => {
     const [row] = await tx
       .update(deliveries)
-      .set({ status: 'delivered', delivered_at: new Date() })
+      .set({ status: 'delivered', delivered_at: new Date(), closed_at: new Date() })
       .where(
         and(
           eq(deliveries.id, d.id),

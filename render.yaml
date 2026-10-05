@@ -1,0 +1,33 @@
+# Render Blueprint, PAID (Starter) plan: one web service serves the API, the vendor app, and the
+# customer/rider pages. For a free first test, use render.free.yaml instead.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: doorlivery
+    runtime: node
+    # Frankfurt: same region as the Neon database (eu-central-1), and the closest Render region to Nigeria.
+    region: frankfurt
+    # Starter keeps the service awake and runs migrations automatically before each deploy.
+    plan: starter
+    # Dev dependencies are needed at build (Vite) and run time (tsx, drizzle-kit for migrations).
+    buildCommand: npm ci --include=dev && npm run build
+    preDeployCommand: npm run db:migrate
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: NIPOST_API_BASE_URL
+        value: https://api.postcode.gov.ng
+      # Set these in the Render dashboard (never in this file):
+      - key: PUBLIC_BASE_URL # e.g. https://doorlivery.onrender.com or your own domain
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NIPOST_API_KEY
+        sync: false
+      # New random value for production. Never change it later: that invalidates every issued delivery code.
+      - key: DELIVERY_CODE_SECRET
+        sync: false

@@ -15,6 +15,7 @@
     "db:generate": "npm run db:generate -w @doorlivery/api",
     "db:migrate": "npm run db:migrate -w @doorlivery/api",
     "db:seed": "npm run db:seed -w @doorlivery/api",
+    "retention": "npm run retention -w @doorlivery/api --",
     "test": "npm run test -w @doorlivery/api",
     "probe:nipost": "tsx scripts/probe-nipost.ts",
     "vendor:create": "tsx scripts/create-vendor.ts"

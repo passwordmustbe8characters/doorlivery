@@ -24,7 +24,7 @@ export interface RiderPageInput {
   landmark: string | null;
   lat: number | null;
   lng: number | null;
-  customerName: string;
+  customerName: string | null;
   customerPhone: string | null;
   codeLocked: boolean;
 }
@@ -89,8 +89,7 @@ export function renderRiderPage(p: RiderPageInput): string {
         : `<div class="value">${escapeHtml(t.noPostcode)}</div>`
     }
     ${p.landmark ? `<div class="label">${escapeHtml(t.landmark)}</div><div class="value">${escapeHtml(p.landmark)}</div>` : ''}
-    <div class="label">${escapeHtml(t.customer)}</div>
-    <div class="value">${escapeHtml(p.customerName)}</div>
+    ${p.customerName ? `<div class="label">${escapeHtml(t.customer)}</div><div class="value">${escapeHtml(p.customerName)}</div>` : ''}
   </section>
 
   ${p.lat !== null && p.lng !== null ? `<a class="btn" href="${escapeHtml(mapUrl(p.lat, p.lng))}" target="_blank" rel="noopener">${escapeHtml(t.openMap)}</a>` : ''}

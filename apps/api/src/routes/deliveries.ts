@@ -172,7 +172,11 @@ deliveriesRouter.post('/:id/customer-link', async (req, res) => {
     'customer_link_sent',
   );
   const link = `${config.PUBLIC_BASE_URL}/c/${token}`;
-  const text = en.messages.customer({ customer_name: row.customer_name, business_name: req.vendor!.business_name, link });
+  const text = en.messages.customer({
+    customer_name: row.customer_name ?? en.messages.customerNameFallback,
+    business_name: req.vendor!.business_name,
+    link,
+  });
   res.json({ link, whatsapp_url: whatsappUrl(row.customer_phone!, text) });
 });
 
@@ -227,7 +231,7 @@ deliveriesRouter.post('/:id/cancel', async (req, res) => {
     req,
     id,
     CAN_CANCEL,
-    { status: 'cancelled', customer_token_hash: null, rider_token_hash: null },
+    { status: 'cancelled', customer_token_hash: null, rider_token_hash: null, closed_at: new Date() },
     'cancelled',
   );
   res.json(present(row));

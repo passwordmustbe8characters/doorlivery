@@ -9,6 +9,8 @@ import { db } from '../db/client.js';
 import { deliveries, deliveryEvents, locationPoints, vendors } from '../db/schema.js';
 import { decryptCode, encryptCode, generateCode, hashCode } from '../lib/delivery-code.js';
 import { AppError } from '../lib/errors.js';
+import { isLinkExpired } from '../lib/link-expiry.js';
+import { byIp, byToken, rateLimit } from '../lib/rate-limit.js';
 import { hashToken, TOKEN_PATTERN } from '../lib/tokens.js';
 import { createNipostClient } from '../nipost/client.js';
 import { checkChosenPostcode, resolvePin, type ResolveResult } from '../nipost/resolve.js';
@@ -67,12 +69,13 @@ async function findByToken(req: Request) {
       code_encrypted: deliveries.code_encrypted,
       dropoff_postcode: deliveries.dropoff_postcode,
       landmark_note: deliveries.landmark_note,
+      closed_at: deliveries.closed_at,
     })
     .from(deliveries)
     .innerJoin(vendors, eq(deliveries.vendor_id, vendors.id))
     .where(eq(deliveries.customer_token_hash, hashToken(token)))
     .limit(1);
-  return row ?? null;
+  return row && !isLinkExpired(row.closed_at) ? row : null;
 }
 
 const isOpen = (status: string) => (OPEN_STATUSES as readonly string[]).includes(status);
@@ -89,6 +92,10 @@ customerRouter.use((_req, res, next) => {
   res.set('X-Robots-Tag', 'noindex');
   next();
 });
+// Per IP across all customer links, then per link below. Resolve and confirm spend NIPOST credits.
+customerRouter.use(rateLimit(120, 60_000, byIp));
+const resolveLimit = rateLimit(30, 10 * 60_000, byToken);
+const confirmLimit = rateLimit(10, 10 * 60_000, byToken);
 
 customerRouter.get('/:token', async (req, res) => {
   const nonce = randomBytes(16).toString('base64');
@@ -123,7 +130,7 @@ customerRouter.get('/:token', async (req, res) => {
   }
 });
 
-customerRouter.post('/:token/resolve', async (req, res) => {
+customerRouter.post('/:token/resolve', resolveLimit, async (req, res) => {
   const delivery = await findOpenDelivery(req);
   if (!delivery) throw new AppError('NOT_FOUND', 'This link is not valid or has expired');
 
@@ -138,7 +145,7 @@ customerRouter.post('/:token/resolve', async (req, res) => {
   res.json(result);
 });
 
-customerRouter.post('/:token/confirm', async (req, res) => {
+customerRouter.post('/:token/confirm', confirmLimit, async (req, res) => {
   const delivery = await findOpenDelivery(req);
   if (!delivery) throw new AppError('NOT_FOUND', en.customer.linkInvalid);
 

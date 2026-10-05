@@ -22,6 +22,20 @@
       "when": 1791142104558,
       "tag": "0002_sweet_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791187332548,
+      "tag": "0003_overrated_wendell_rand",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791190527037,
+      "tag": "0004_nervous_centennial",
+      "breakpoints": true
     }
   ]
 }
