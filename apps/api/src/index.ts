@@ -23,6 +23,14 @@ app.use(securityHeaders(config.NODE_ENV === 'production'));
 app.use(requestLogger);
 app.use(express.json({ limit: '32kb' }));
 
+// Self-hosted font and favicon, shared by every page (no third-party font requests).
+const publicDir = resolve(import.meta.dirname, '../public');
+app.use('/fonts', express.static(resolve(publicDir, 'fonts'), { maxAge: '30d', fallthrough: false }));
+app.get('/favicon.svg', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.sendFile(resolve(publicDir, 'favicon.svg'));
+});
+
 app.get('/health', async (_req, res) => {
   const db = await checkDb();
   res.status(db === 'down' ? 503 : 200).json({ status: db === 'down' ? 'degraded' : 'ok', db });

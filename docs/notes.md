@@ -138,6 +138,36 @@ Raw responses: `docs/nipost-samples/`. Types: `packages/shared/src/nipost.ts`. T
 - [ ] May we store NIPOST-derived responses and our own pin data? (Ask NIPOST in writing.)
 - [ ] Map tile provider and terms for production.
 
+## Live order screen and feedback round (2026-10-08)
+- **Customer live order screen**, after confirming (inspired by the user's reference image):
+  - Layout: the map with their pin, a dark live strip with "Step n of 4", and a white sheet with the code, a From → To route and "This page updates by itself."
+  - It polls `GET /c/:token/status` every 15 s while visible. The response is status, line, title and step only, never the code.
+  - New status text settles in letter by letter (~500 ms); screen readers get the final text through a separate live region.
+  - It reloads into the "Delivered" page when the delivery completes.
+- **Code reveal:** each digit is a reel of 0–9 twice that rolls one full cycle and lands on the digit (1.2 s, ease-out, 120 ms stagger). Without JS or with reduced motion, the reels just sit on the digit.
+- **Vendor notices:**
+  - They drop in at the top and leave the same way. They render in a portal to `<body>`, because the page's fade-in transform trapped `position: fixed`.
+  - They're sentences now, e.g. "Chidi has received their order of 2 ankara dresses from Adaeze Fabrics". "their" is used deliberately, since we don't know anyone's pronouns.
+- **Rider "Open map"** now uses `google.com/maps/dir/?api=1&destination=lat,lng&dir_action=navigate`, so navigation starts in one tap (the Google Maps app if installed, otherwise the web).
+- **Not built, waiting on decisions:** customer updates after leaving the page (web push / SMS / RCS), the vendor package photo, the rider's live location, and how far to restyle the vendor app after the second reference image.
+
+## Design system (2026-10-08)
+Built with the landing-page-design, emil-design-eng, ux-copy and accessibility skills.
+- **One stylesheet for every surface:** `packages/shared/src/design.css`, imported by the vendor app and inlined (minified) into the server-rendered customer, rider and error pages (`apps/api/src/views/design.ts`).
+- **Type:** Manrope, self-hosted at `/fonts/manrope-latin.woff2` (24 KB, OFL licence alongside), weights 400–700, Tailwind type scale. Riders get a larger base size (20px).
+- **Tokens:** warm off-white background, brand green `#0b6e4f`, fixed spacing steps (2–64 px), Tailwind radii, flat backgrounds.
+- **Icons:** Phosphor (MIT), with the path data copied into `packages/shared/src/icons.ts`, so no icon library.
+- **Motion:** transform and opacity only, ease-out `cubic-bezier(0.23,1,0.32,1)`, under 300 ms; press feedback `scale(.97)`; hover only on real pointers; `prefers-reduced-motion` respected.
+- **Copy:** all text in `packages/shared/src/i18n.ts`. Sentence case, no exclamation marks, buttons named by their action, errors that say what to do. The SPEC wording is kept verbatim: the confidence notes, the code instruction and both WhatsApp templates.
+- **Deliberate exceptions:**
+  - Main buttons are 48 px tall, and rider buttons 64 px. The skill's smaller button padding is overridden by SPEC 8's thumb-sized buttons and mobile tap targets.
+  - Light theme only for now, because outdoor readability matters for riders and customers.
+- **Rider page weight:** 20.4 KB HTML (6.5 KB gzipped) + 24.3 KB font = 44.7 KB, against the 100 KB budget.
+- **Accessibility:** axe-core (WCAG 2.2 AA + best practice) found 0 violations on 10 screens (2026-10-08).
+  - Skip link, visible focus rings, native `<dialog>` for confirmations (no `window.confirm` or `alert` anywhere).
+  - Labelled inputs with inline errors, digit tiles read out one by one, live regions for notices.
+- **Real-browser click-through (headless Edge):** customer locate → confirm → code, and rider picked up → arrived → wrong code → right code → delivered. 15/15 passed, no JS errors.
+
 ## Post-launch changes (2026-10-05)
 - **Live updates in the vendor app.** The delivery page refreshes every 10 s and the list every 15 s, only while the tab is visible: it pauses when the phone is locked or the tab is in the background, and refreshes as soon as the vendor comes back. A notice appears for anything the customer, rider or system did (e.g. "Chidi: Customer confirmed location"), never for the vendor's own taps. Polling stops once a delivery is closed. No server changes, no new dependencies. 10 unit tests (`apps/web/src/live-changes.test.ts`).
 - **npm audit: 5 → 0.**

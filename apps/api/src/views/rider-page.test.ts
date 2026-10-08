@@ -34,7 +34,7 @@ describe('rider page', () => {
 
   it('shows the SPEC 8 items in order', () => {
     const html = render();
-    const order = ['Shop 4, Ikorodu market', 'LA 12 B04 EK 01', 'Blue gate', 'Open Map', 'Call customer', 'I have picked up', 'I have arrived', "Customer&#39;s 4-digit code", '>Delivered<'];
+    const order = ['Shop 4, Ikorodu market', 'LA 12 B04 EK 01', 'Blue gate', 'Open map', 'Call customer', 'I have picked up', 'I have arrived', 'Code from the customer', 'Mark as delivered'];
     let at = 0;
     for (const text of order) {
       const i = html.indexOf(text, at);
@@ -45,22 +45,30 @@ describe('rider page', () => {
 
   it('Open Map uses the coordinates in lat,lng order; Call uses +234', () => {
     const html = render();
-    assert.ok(html.includes('query=6.623259,3.498067'));
-    assert.equal(mapUrl(6.5, 3.3), 'https://www.google.com/maps/search/?api=1&query=6.5,3.3');
+    assert.ok(html.includes('destination=6.623259,3.498067'));
+    const u = new URL(mapUrl(6.5, 3.3));
+    assert.equal(u.origin + u.pathname, 'https://www.google.com/maps/dir/');
+    assert.equal(u.searchParams.get('destination'), '6.5,3.3'); // lat,lng order
+    assert.equal(u.searchParams.get('dir_action'), 'navigate'); // route starts immediately
     assert.ok(html.includes('href="tel:+2348031234567"'));
   });
 
   it('explains the location request next to Delivered', () => {
-    assert.ok(render().includes("we&#39;ll ask for your location to confirm the drop-off"));
+    assert.ok(render().includes('We&#39;ll ask for your location to confirm the delivery spot. You can say no.'));
   });
 
-  it('buttons follow the status', () => {
-    assert.ok(!buttonFor(render(), 'picked_up').includes('disabled'));
+  it('buttons follow the status: next step is the solid button, finished steps show Done', () => {
+    const assigned = render();
+    assert.match(buttonFor(assigned, 'picked_up'), /btn-primary/);
+    assert.match(buttonFor(assigned, 'arrived'), /btn-secondary/);
+
     const picked = render({ status: 'picked_up' });
-    assert.ok(buttonFor(picked, 'picked_up').includes('disabled'));
-    assert.ok(!buttonFor(picked, 'arrived').includes('disabled'));
+    assert.ok(!picked.includes('data-event="picked_up"'));
+    assert.ok(picked.includes('I have picked up · Done'));
+    assert.match(buttonFor(picked, 'arrived'), /btn-primary/);
+
     const arrived = render({ status: 'arrived' });
-    assert.ok(buttonFor(arrived, 'arrived').includes('disabled'));
+    assert.ok(!arrived.includes('data-event='));
     assert.ok(!/id="delivered"[^>]*disabled/.test(arrived));
   });
 
@@ -76,8 +84,9 @@ describe('rider page', () => {
   });
 
   it('no customer name (removed by retention): renders without it', () => {
+    assert.ok(render().includes('Chidi'));
     const html = render({ customerName: null });
-    assert.ok(!html.includes('>Customer<'));
+    assert.ok(!html.includes('Customer: '));
     assert.ok(html.includes('LA 12 B04 EK 01'));
   });
 

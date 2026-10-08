@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { en } from '@doorlivery/shared';
 import { api, RequestError } from '../api';
-import { ErrorText } from '../components';
+import { BrandMark, ErrorText } from '../components';
 
 const t = en.vendor.login;
 
@@ -27,29 +27,48 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => Promise<void> }) {
   }
 
   return (
-    <main className="page narrow">
-      <h1 className="brand-lg">{en.vendor.appName}</h1>
-      <form className="card stack" onSubmit={submit}>
-        <h2>{t.title}</h2>
-        <label>
-          {t.email}
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          {t.password}
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
-        <ErrorText message={error} />
-        <button className="primary" disabled={busy}>
-          {busy ? t.submitting : t.submit}
-        </button>
-      </form>
+    <main className="auth" id="main">
+      <div className="auth-card appear">
+        <BrandMark />
+        <h1>{t.title}</h1>
+        <p className="lead">{t.subtitle}</p>
+        <form className="stack-200" onSubmit={submit} noValidate={false}>
+          <div className="field">
+            <label className="field-label" htmlFor="email">
+              {t.email}
+            </label>
+            <input
+              id="email"
+              className="input"
+              type="email"
+              autoComplete="username"
+              inputMode="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="field-label" htmlFor="password">
+              {t.password}
+            </label>
+            <input
+              id="password"
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <ErrorText message={error} />
+          <button className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? t.submitting : t.submit}
+          </button>
+        </form>
+        <p className="auth-foot">{t.inviteOnly}</p>
+      </div>
     </main>
   );
 }

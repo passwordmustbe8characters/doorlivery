@@ -35,6 +35,7 @@ export type ErrorCode = (typeof ERROR_CODES)[number];
 export * from './nipost.ts';
 export * from './phone.ts';
 export * from './i18n.ts';
+export * from './icons.ts';
 
 export interface ApiError {
   error: true;

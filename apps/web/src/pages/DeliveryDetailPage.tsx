@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { en, formatNigerianPhone, type DeliveryStatus } from '@doorlivery/shared';
+import { en, formatNigerianPhone, type DeliveryStatus, type IconName } from '@doorlivery/shared';
 import { api, RequestError, type DeliveryDetail, type ShareLink } from '../api';
-import { displayPostcode, ErrorText, formatWhen, StatusBadge, Toast } from '../components';
+import { CardSkeleton, ConfirmDialog, displayPostcode, ErrorText, formatWhen, Icon, StatusBadge, Toast } from '../components';
 import { describeNewEvent } from '../live-changes';
 import { linkHandler } from '../router';
 import { usePolling } from '../usePolling';
@@ -10,6 +10,20 @@ const t = en.vendor.detail;
 const CAN_SEND_CUSTOMER: DeliveryStatus[] = ['created', 'awaiting_customer'];
 const CAN_SEND_RIDER: DeliveryStatus[] = ['ready', 'assigned'];
 const CLOSED: DeliveryStatus[] = ['delivered', 'failed', 'cancelled'];
+
+/** How far along the 5-step progress bar a status is: [steps done, current step]. */
+function progressOf(status: DeliveryStatus): [number, number] {
+  switch (status) {
+    case 'created': return [0, 0];
+    case 'awaiting_customer': return [1, 1];
+    case 'ready': return [2, 2];
+    case 'assigned': return [3, 3];
+    case 'picked_up':
+    case 'arrived': return [4, 4];
+    case 'delivered': return [5, -1];
+    default: return [0, -1];
+  }
+}
 
 /**
  * Opens WhatsApp with the prefilled message. The tab is opened before the API call (synchronously in the
@@ -29,14 +43,25 @@ async function shareViaWhatsApp(getLink: () => Promise<ShareLink>): Promise<Shar
   }
 }
 
-export function DeliveryDetailPage({ id }: { id: string }) {
+function Fact({ icon, label, children }: { icon: IconName; label: string; children: React.ReactNode }) {
+  return (
+    // <dt>/<dd> must be direct children of the row <div> for screen readers (axe: dlitem, definition-list).
+    <div className="fact">
+      <Icon name={icon} />
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  );
+}
+
+export function DeliveryDetailPage({ id, business }: { id: string; business: string }) {
   const [d, setD] = useState<DeliveryDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastLink, setLastLink] = useState<{ kind: 'customer' | 'rider'; link: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [riderPhone, setRiderPhone] = useState('');
-
+  const [dialog, setDialog] = useState<'cancel' | 'unlock' | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const closeToast = useCallback(() => setToast(null), []);
   // How many timeline events we've already shown; null until the first load.
@@ -48,7 +73,7 @@ export function DeliveryDetailPage({ id }: { id: string }) {
         const detail = await api.get(id);
         // Tell the vendor about anything the customer, rider or system did since the last load.
         if (seenEvents.current !== null) {
-          const notice = describeNewEvent(detail.customer_name, detail.events, seenEvents.current);
+          const notice = describeNewEvent(detail, detail.events, seenEvents.current, business);
           if (notice) setToast(notice);
         }
         seenEvents.current = detail.events.length;
@@ -59,7 +84,7 @@ export function DeliveryDetailPage({ id }: { id: string }) {
         if (!background) setError(e instanceof RequestError ? e.message : en.vendor.errorGeneric);
       }
     },
-    [id],
+    [id, business],
   );
 
   useEffect(() => {
@@ -97,12 +122,10 @@ export function DeliveryDetailPage({ id }: { id: string }) {
       setCopied(false);
     });
 
-  const cancel = () => {
-    if (window.confirm(t.cancelConfirm)) void run(() => api.cancel(id));
-  };
-
-  const unlock = () => {
-    if (window.confirm(t.unlockConfirm)) void run(() => api.unlockCode(id));
+  const confirmDialog = async () => {
+    const which = dialog;
+    await run(() => (which === 'cancel' ? api.cancel(id) : api.unlockCode(id)));
+    setDialog(null);
   };
 
   async function copy(link: string) {
@@ -114,127 +137,192 @@ export function DeliveryDetailPage({ id }: { id: string }) {
     }
   }
 
+  const back = (
+    <a className="back" href="/" onClick={linkHandler('/')}>
+      <Icon name="arrowLeft" size={16} />
+      {t.back}
+    </a>
+  );
+
   if (!d) {
     return (
       <>
-        <a href="/" onClick={linkHandler('/')}>
-          ← {t.back}
-        </a>
+        {back}
         <ErrorText message={error} />
+        {!error && (
+          <div className="stack-100" aria-busy="true">
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        )}
       </>
     );
   }
 
+  const [doneSteps, currentStep] = progressOf(d.status);
   const customerSent = d.events.some((e) => e.event_type === 'customer_link_sent');
+  const closed = CLOSED.includes(d.status);
+  const riderMoving = d.status === 'picked_up' || d.status === 'arrived';
 
   return (
     <>
-      <a href="/" onClick={linkHandler('/')}>
-        ← {t.back}
-      </a>
-      <div className="row between">
-        <h1>{d.customer_name ?? en.vendor.list.nameRemoved}</h1>
+      {back}
+
+      <div className="detail-title">
+        <div>
+          <h1>{d.customer_name ?? en.vendor.list.nameRemoved}</h1>
+          <p>{d.delivered_at ? t.deliveredOn(formatWhen(d.delivered_at)) : formatWhen(d.created_at)}</p>
+        </div>
         <StatusBadge status={d.status} />
       </div>
 
-      <dl className="card facts">
-        <dt>{t.customer}</dt>
-        <dd>
-          {d.customer_name ?? <span className="muted">{en.vendor.list.nameRemoved}</span>}
-          {d.customer_phone && <span className="muted"> · {formatNigerianPhone(d.customer_phone)}</span>}
-        </dd>
-        <dt>{t.pickup}</dt>
-        <dd>{d.pickup_note}</dd>
-        {d.item_note && (
-          <>
-            <dt>{t.item}</dt>
-            <dd>{d.item_note}</dd>
-          </>
-        )}
-        <dt>{t.dropoff}</dt>
-        <dd>{d.dropoff_postcode ? displayPostcode(d.dropoff_postcode) : '—'}</dd>
-        {d.landmark_note && (
-          <>
-            <dt>{t.landmark}</dt>
-            <dd>{d.landmark_note}</dd>
-          </>
-        )}
-        <dt>{t.rider}</dt>
-        <dd>{d.rider_phone ? formatNigerianPhone(d.rider_phone) : <span className="muted">{t.noRider}</span>}</dd>
-      </dl>
+      <ol className={`progress${d.status === 'cancelled' || d.status === 'failed' ? ' stopped' : ''}`} aria-label={t.progress}>
+        {t.steps.map((label, i) => (
+          <li key={label} className={i < doneSteps ? 'done' : i === currentStep ? 'current' : undefined} aria-current={i === currentStep ? 'step' : undefined}>
+            {label}
+          </li>
+        ))}
+      </ol>
 
-      <ErrorText message={error} />
+      {error && (
+        <div className="section">
+          <ErrorText message={error} />
+        </div>
+      )}
 
-      {d.code_locked && !CLOSED.includes(d.status) && (
-        <section className="card stack alert" role="alert">
-          <p>{t.codeLocked}</p>
-          <button type="button" className="primary" disabled={busy} onClick={unlock}>
+      {d.code_locked && !closed && (
+        <section className="card section notice-danger appear" role="alert">
+          <div className="section-title">
+            <Icon name="lockKey" />
+            <h2 className="text-base">{t.codeLockedTitle}</h2>
+          </div>
+          <p className="text-sm">{t.codeLocked}</p>
+          <button type="button" className="btn btn-danger btn-block section" disabled={busy} onClick={() => setDialog('unlock')}>
+            <Icon name="lockKeyOpen" />
             {t.unlockCode}
           </button>
         </section>
       )}
 
+      {/* Next step: only the action that makes sense right now */}
       {CAN_SEND_CUSTOMER.includes(d.status) && (
-        <section className="card stack">
-          <button type="button" className="primary whatsapp" disabled={busy} onClick={sendToCustomer}>
+        <section className="card section next-step">
+          <div className="eyebrow">{t.nextStep}</div>
+          <p className="lead">{t.sendToCustomerHint}</p>
+          <button type="button" className="btn btn-primary btn-block" disabled={busy} onClick={sendToCustomer}>
+            <Icon name="whatsappLogo" />
             {customerSent ? t.sendToCustomerAgain : t.sendToCustomer}
           </button>
-          <p className="hint">{t.sendToCustomerHint}</p>
         </section>
       )}
 
-      {!CLOSED.includes(d.status) && (
-        <section className="card stack">
-          <label>
-            {t.riderPhone}
+      {CAN_SEND_RIDER.includes(d.status) && (
+        <section className="card section next-step">
+          <div className="eyebrow">{t.nextStep}</div>
+          <div className="field">
+            <label className="field-label" htmlFor="rider-phone">
+              {t.riderPhone}
+            </label>
             <input
+              id="rider-phone"
+              className="input"
               type="tel"
               inputMode="tel"
               placeholder={en.vendor.form.phoneHint}
               value={riderPhone}
               onChange={(e) => setRiderPhone(e.target.value)}
-              disabled={!CAN_SEND_RIDER.includes(d.status)}
             />
-          </label>
-          <button
-            type="button"
-            className="primary whatsapp"
-            disabled={busy || !CAN_SEND_RIDER.includes(d.status) || !riderPhone.trim()}
-            onClick={sendToRider}
-          >
+          </div>
+          <button type="button" className="btn btn-primary btn-block" disabled={busy || !riderPhone.trim()} onClick={sendToRider}>
+            <Icon name="whatsappLogo" />
             {t.sendToRider}
           </button>
-          {!CAN_SEND_RIDER.includes(d.status) && <p className="hint">{t.sendToRiderHint}</p>}
         </section>
+      )}
+
+      {d.status === 'awaiting_customer' && (
+        <div className="notice notice-info section">
+          <Icon name="clock" />
+          <span>{t.sendToRiderHint}</span>
+        </div>
+      )}
+
+      {riderMoving && (
+        <div className="notice notice-info section">
+          <Icon name="moped" />
+          <span>{en.vendor.status[d.status]}</span>
+        </div>
       )}
 
       {lastLink && (
-        <section className="card stack">
-          <span className="muted small">{t.linkLabel}</span>
-          <code className="link-box">{lastLink.link}</code>
-          <button type="button" className="secondary" onClick={() => copy(lastLink.link)}>
+        <div className="link-box appear">
+          <code title={lastLink.link}>{lastLink.link}</code>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => copy(lastLink.link)}>
+            <Icon name={copied ? 'check' : 'copy'} size={16} />
             {copied ? t.copied : t.copyLink}
           </button>
-        </section>
+        </div>
       )}
 
-      <section className="card">
-        <h2>{t.timeline}</h2>
+      <section className="card section">
+        <dl className="facts">
+          <Fact icon="user" label={t.customer}>
+            {d.customer_name ?? <span className="subtle">{en.vendor.list.nameRemoved}</span>}
+            {d.customer_phone && <span className="sub"> · {formatNigerianPhone(d.customer_phone)}</span>}
+          </Fact>
+          <Fact icon="mapPin" label={t.dropoff}>
+            {d.dropoff_postcode ? <span className="postcode">{displayPostcode(d.dropoff_postcode)}</span> : <span className="subtle">{en.vendor.list.noPostcode}</span>}
+          </Fact>
+          {d.landmark_note && (
+            <Fact icon="note" label={t.landmark}>
+              {d.landmark_note}
+            </Fact>
+          )}
+          <Fact icon="storefront" label={t.pickup}>
+            {d.pickup_note}
+          </Fact>
+          {d.item_note && (
+            <Fact icon="package" label={t.item}>
+              {d.item_note}
+            </Fact>
+          )}
+          <Fact icon="moped" label={t.rider}>
+            {d.rider_phone ? formatNigerianPhone(d.rider_phone) : <span className="subtle">{t.noRider}</span>}
+          </Fact>
+        </dl>
+      </section>
+
+      <section className="card section">
+        <h2 className="text-base section-title">{t.timeline}</h2>
         <ol className="timeline">
           {d.events.map((e, i) => (
-            <li key={i}>
+            <li key={i} className={e.actor !== 'vendor' ? 'outside' : undefined}>
               <span>{en.vendor.events[e.event_type] ?? e.event_type}</span>
-              <span className="muted small">{formatWhen(e.occurred_at)}</span>
+              <span className="when">{formatWhen(e.occurred_at)}</span>
             </li>
           ))}
         </ol>
       </section>
 
-      {!CLOSED.includes(d.status) && (
-        <button type="button" className="danger-link" disabled={busy} onClick={cancel}>
-          {t.cancelDelivery}
-        </button>
+      {!closed && (
+        <div className="danger-zone">
+          <button type="button" className="btn btn-danger-ghost" disabled={busy} onClick={() => setDialog('cancel')}>
+            {t.cancelDelivery}
+          </button>
+        </div>
       )}
+
+      <ConfirmDialog
+        open={dialog !== null}
+        danger={dialog === 'cancel'}
+        busy={busy}
+        title={dialog === 'unlock' ? t.unlockConfirmTitle : t.cancelConfirmTitle}
+        body={dialog === 'unlock' ? t.unlockConfirm : t.cancelConfirm}
+        confirmLabel={dialog === 'unlock' ? t.unlockCode : t.cancelDelivery}
+        keepLabel={dialog === 'unlock' ? t.keepLocked : t.keepDelivery}
+        onConfirm={() => void confirmDialog()}
+        onClose={() => setDialog(null)}
+      />
       <Toast message={toast} onClose={closeToast} />
     </>
   );

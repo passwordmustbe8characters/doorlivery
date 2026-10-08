@@ -16,6 +16,7 @@ import { createNipostClient } from '../nipost/client.js';
 import { checkChosenPostcode, resolvePin, type ResolveResult } from '../nipost/resolve.js';
 import {
   customerPageCsp,
+  orderStatusView,
   renderCodePage,
   renderCustomerPage,
   renderDeliveredPage,
@@ -69,6 +70,8 @@ async function findByToken(req: Request) {
       code_encrypted: deliveries.code_encrypted,
       dropoff_postcode: deliveries.dropoff_postcode,
       landmark_note: deliveries.landmark_note,
+      dropoff_lat: deliveries.dropoff_lat,
+      dropoff_lng: deliveries.dropoff_lng,
       closed_at: deliveries.closed_at,
     })
     .from(deliveries)
@@ -121,6 +124,10 @@ customerRouter.get('/:token', async (req, res) => {
         code: delivery.code_encrypted ? decryptCode(delivery.id, delivery.code_encrypted) : null,
         postcode: delivery.dropoff_postcode,
         landmark: delivery.landmark_note,
+        lat: delivery.dropoff_lat,
+        lng: delivery.dropoff_lng,
+        tileUrl: config.MAP_TILE_URL,
+        tileAttribution: config.MAP_TILE_ATTRIBUTION,
       }),
     );
   } else if (delivery?.status === 'delivered') {
@@ -128,6 +135,13 @@ customerRouter.get('/:token', async (req, res) => {
   } else {
     res.status(404).send(renderLinkInvalidPage(nonce));
   }
+});
+
+// Polled by the live order screen (every 15 s while visible). Status and wording only: never the code.
+customerRouter.get('/:token/status', async (req, res) => {
+  const d = await findByToken(req);
+  if (!d || !(CODE_STATUSES.has(d.status) || d.status === 'delivered')) throw new AppError('NOT_FOUND', en.customer.linkInvalid);
+  res.json({ status: d.status, ...orderStatusView(d.status) });
 });
 
 customerRouter.post('/:token/resolve', resolveLimit, async (req, res) => {

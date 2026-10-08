@@ -8,6 +8,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': 'http://localhost:4000',
+      // Font and favicon are served by Express (shared with the customer and rider pages).
+      '/fonts': 'http://localhost:4000',
+      '/favicon.svg': 'http://localhost:4000',
     },
   },
   build: {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { en } from '@doorlivery/shared';
 import { api, setUnauthorizedHandler, type Me } from './api';
+import { CardSkeleton, Icon } from './components';
 import { linkHandler, navigate, useRoute } from './router';
 import { LoginPage } from './pages/LoginPage';
 import { DeliveryListPage } from './pages/DeliveryListPage';
@@ -33,7 +34,24 @@ export function App() {
     if (me && route.name === 'login') navigate('/', true);
   }, [me, route.name]);
 
-  if (me === undefined) return <div className="center muted">…</div>;
+  // Tab title follows the screen.
+  useEffect(() => {
+    const titles = { list: t.list.title, new: t.form.title, detail: t.list.title, login: t.login.submit };
+    document.title = `${titles[route.name]} · ${t.appName}`;
+  }, [route.name]);
+
+  if (me === undefined) {
+    // Shaped like the list it is about to show, instead of a spinner.
+    return (
+      <main className="page" aria-busy="true">
+        <div className="stack-100">
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </div>
+      </main>
+    );
+  }
   if (me === null) return <LoginPage onLoggedIn={loadMe} />;
 
   async function logout() {
@@ -46,19 +64,28 @@ export function App() {
 
   return (
     <>
+      <a className="skip-link" href="#main">
+        {t.skipToContent}
+      </a>
       <header className="topbar">
-        <a href="/" onClick={linkHandler('/')} className="brand">
+        <a href="/" onClick={linkHandler('/')} className="brand-mark" aria-label={`${t.appName}: ${t.nav.deliveries}`}>
+          <span className="logo">
+            <Icon name="mapPin" size={18} />
+          </span>
           {t.appName}
         </a>
         <span className="who">{me.business_name}</span>
-        <button type="button" className="link" onClick={logout}>
-          {t.nav.logout}
+        <button type="button" className="btn btn-ghost btn-sm" onClick={logout}>
+          <Icon name="signOut" />
+          <span>{t.nav.logout}</span>
         </button>
       </header>
-      <main className="page">
-        {route.name === 'new' && <NewDeliveryPage />}
-        {route.name === 'detail' && <DeliveryDetailPage id={route.id} />}
-        {route.name === 'list' && <DeliveryListPage page={route.page} />}
+      <main className="page" id="main" key={route.name === 'detail' ? route.id : route.name}>
+        <div className="appear">
+          {route.name === 'new' && <NewDeliveryPage />}
+          {route.name === 'detail' && <DeliveryDetailPage id={route.id} business={me.business_name} />}
+          {route.name === 'list' && <DeliveryListPage page={route.page} business={me.business_name} />}
+        </div>
       </main>
     </>
   );
